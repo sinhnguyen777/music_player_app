@@ -1,7 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../models/track.dart';
-import '../widgets/track_tile.dart';
+import '../providers/player_provider.dart';
+import '../screens/player_screen.dart';
 
 class SectionCarousel extends StatelessWidget {
   final String title;
@@ -35,12 +38,21 @@ class SectionCarousel extends StatelessWidget {
                   child: Column(
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TrackTile(track: t, list: tracks),
-                          ),
-                        ),
+                        onTap: () async {
+                          final player = Provider.of<PlayerProvider>(
+                            context,
+                            listen: false,
+                          );
+                          await player.playTrack(t, queue: tracks);
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PlayerScreen(),
+                              ),
+                            );
+                          }
+                        },
                         child: CachedNetworkImage(
                           imageUrl: t.artworkUrl.isNotEmpty
                               ? t.artworkUrl
@@ -73,12 +85,21 @@ class SectionCarousel extends StatelessWidget {
                       ),
                       IconButton(
                         icon: const Icon(Icons.play_arrow),
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TrackTile(track: t, list: tracks),
-                          ),
-                        ),
+                        onPressed: () async {
+                          final player = Provider.of<PlayerProvider>(
+                            context,
+                            listen: false,
+                          );
+                          await player.playTrack(t, queue: tracks);
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PlayerScreen(),
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),

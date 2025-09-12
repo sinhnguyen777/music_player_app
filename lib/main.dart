@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'providers/auth_provider.dart';
-import 'providers/player_provider.dart';
 import 'providers/home_provider.dart';
+import 'providers/player_provider.dart';
 import 'screens/home_screen.dart';
-import 'screens/search_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/search_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,7 @@ class _MyAppState extends State<MyApp> {
         theme: ThemeData(
           primaryColor: primaryGreen,
           colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
-          useMaterial3: false,
+          useMaterial3: true,
           brightness: Brightness.light,
           appBarTheme: const AppBarTheme(backgroundColor: primaryGreen),
           floatingActionButtonTheme: const FloatingActionButtonThemeData(
