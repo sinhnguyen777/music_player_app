@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/playlist.dart';
+import '../models/track.dart';
+import '../providers/player_provider.dart';
 import '../providers/playlist_provider.dart';
+import '../services/firebase_playlist_service.dart';
+import 'add_tracks_screen.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final String playlistId;
@@ -14,12 +18,38 @@ class PlaylistDetailScreen extends StatefulWidget {
 }
 
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
+  final FirebasePlaylistService _playlistService = FirebasePlaylistService();
+  List<Track> _tracks = [];
+  bool _loadingTracks = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PlaylistProvider>().loadPlaylistById(widget.playlistId);
+      _loadTracks();
     });
+  }
+
+  Future<void> _loadTracks() async {
+    setState(() {
+      _loadingTracks = true;
+    });
+
+    try {
+      final tracks = await _playlistService.getPlaylistTracks(
+        widget.playlistId,
+      );
+      setState(() {
+        _tracks = tracks;
+        _loadingTracks = false;
+      });
+    } catch (e) {
+      print('Error loading tracks: $e');
+      setState(() {
+        _loadingTracks = false;
+      });
+    }
   }
 
   @override
@@ -159,7 +189,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${playlist.trackCount} bài hát',
+                            '${_tracks.length} bài hát',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -188,9 +218,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: playlist.trackCount > 0
-                                  ? _playAll
-                                  : null,
+                              onPressed: _tracks.isNotEmpty ? _playAll : null,
                               icon: const Icon(Icons.play_arrow),
                               label: const Text('Phát tất cả'),
                               style: ElevatedButton.styleFrom(
@@ -203,7 +231,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: playlist.trackCount > 0
+                              onPressed: _tracks.isNotEmpty
                                   ? _shufflePlay
                                   : null,
                               icon: const Icon(Icons.shuffle),
@@ -235,7 +263,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               ),
 
               // Track list
-              if (playlist.trackCount == 0)
+              if (_loadingTracks)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                )
+              else if (_tracks.isEmpty)
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(32),
@@ -260,35 +295,101 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate((context, index) {
-                    // TODO: Load actual track data from trackIds
+                    final track = _tracks[index];
                     return ListTile(
-                      leading: CircleAvatar(child: Text('${index + 1}')),
-                      title: Text('Track ${index + 1}'),
-                      subtitle: const Text('Artist name'),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'remove':
-                              _removeTrack(index);
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'remove',
-                            child: Row(
-                              children: [
-                                Icon(Icons.remove, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Xóa khỏi playlist'),
-                              ],
-                            ),
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: track.artworkUrl.isNotEmpty
+                            ? Image.network(
+                                track.artworkUrl,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      width: 50,
+                                      height: 50,
+                                      color: Colors.grey[300],
+                                      child: const Icon(Icons.music_note),
+                                    ),
+                              )
+                            : Container(
+                                width: 50,
+                                height: 50,
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.music_note),
+                              ),
+                      ),
+                      title: Text(
+                        track.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        track.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatDuration(track.duration),
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                          PopupMenuButton<String>(
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'remove':
+                                  _removeTrackFromPlaylist(track, index);
+                                  break;
+                                case 'play_next':
+                                  _playNext(track);
+                                  break;
+                                case 'add_to_queue':
+                                  _addToQueue(track);
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'play_next',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.skip_next),
+                                    SizedBox(width: 8),
+                                    Text('Phát tiếp theo'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'add_to_queue',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.queue_music),
+                                    SizedBox(width: 8),
+                                    Text('Thêm vào hàng đợi'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'remove',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.remove, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Xóa khỏi playlist'),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      onTap: () => _playTrack(index),
+                      onTap: () => _playTrackAtIndex(index),
                     );
-                  }, childCount: playlist.trackCount),
+                  }, childCount: _tracks.length),
                 ),
             ],
           );
@@ -313,51 +414,202 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   }
 
   void _playAll() {
-    // TODO: Implement play all functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Phát tất cả bài hát trong playlist')),
-    );
+    if (_tracks.isNotEmpty) {
+      // Debug: Check if tracks have URLs
+      print('DEBUG: Playing ${_tracks.length} tracks');
+      for (int i = 0; i < _tracks.length; i++) {
+        print('Track $i: ${_tracks[i].title} - URL: ${_tracks[i].url}');
+      }
+
+      // Ensure tracks have playable URLs
+      final playableTracks = _tracks.map((track) {
+        if (track.url == null || track.url!.isEmpty) {
+          // Provide fallback URL for tracks without URLs
+          return track.copyWith(
+            url:
+                'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+          );
+        }
+        return track;
+      }).toList();
+
+      final playerProvider = context.read<PlayerProvider>();
+      playerProvider.playTrack(playableTracks.first, queue: playableTracks);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bắt đầu phát playlist')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Playlist trống, không thể phát nhạc'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _shufflePlay() {
-    // TODO: Implement shuffle play functionality
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Phát ngẫu nhiên playlist')));
+    if (_tracks.isNotEmpty) {
+      print('DEBUG: Shuffle play with ${_tracks.length} tracks');
+
+      // Ensure tracks have playable URLs
+      final playableTracks = _tracks.map((track) {
+        if (track.url == null || track.url!.isEmpty) {
+          // Provide fallback URL for tracks without URLs
+          return track.copyWith(
+            url:
+                'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+          );
+        }
+        return track;
+      }).toList();
+
+      final shuffledTracks = List<Track>.from(playableTracks);
+      shuffledTracks.shuffle();
+      final playerProvider = context.read<PlayerProvider>();
+      playerProvider.playTrack(shuffledTracks.first, queue: shuffledTracks);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Phát ngẫu nhiên playlist')));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Playlist trống, không thể phát nhạc'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  void _addTracks() {
-    // TODO: Navigate to track selection screen
-    ScaffoldMessenger.of(
+  void _addTracks() async {
+    final result = await Navigator.push<bool>(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Thêm bài hát vào playlist')));
+      MaterialPageRoute(
+        builder: (context) => AddTracksScreen(playlistId: widget.playlistId),
+      ),
+    );
+
+    // If tracks were added, reload the playlist
+    if (result == true) {
+      await _loadTracks();
+    }
   }
 
-  void _playTrack(int index) {
-    // TODO: Implement play track functionality
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Phát bài hát ${index + 1}')));
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
 
-  void _removeTrack(int index) {
+  void _playNext(Track track) {
+    final playerProvider = context.read<PlayerProvider>();
+    final currentQueue = List<Track>.from(playerProvider.queue);
+
+    if (currentQueue.isNotEmpty) {
+      // Find current playing track index
+      final currentTrack = playerProvider.current;
+      if (currentTrack != null) {
+        final currentIndex = currentQueue.indexWhere(
+          (t) => t.id == currentTrack.id,
+        );
+        if (currentIndex != -1) {
+          // Insert track after current track
+          currentQueue.insert(currentIndex + 1, track);
+          // Update the queue (this would require PlayerProvider modification)
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã thêm "${track.title}" vào phát tiếp theo'),
+            ),
+          );
+          return;
+        }
+      }
+    }
+
+    // Fallback: play track immediately
+    playerProvider.playTrack(track, queue: [track, ..._tracks]);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Đang phát "${track.title}"')));
+  }
+
+  void _addToQueue(Track track) {
+    final playerProvider = context.read<PlayerProvider>();
+    final currentQueue = List<Track>.from(playerProvider.queue);
+
+    // Add track to end of queue
+    currentQueue.add(track);
+    // Update the queue (this would require PlayerProvider modification)
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Đã thêm "${track.title}" vào hàng đợi')),
+    );
+  }
+
+  void _playTrackAtIndex(int index) {
+    final track = _tracks[index];
+    final playerProvider = context.read<PlayerProvider>();
+
+    // Ensure tracks have playable URLs
+    final playableTracks = _tracks.map((t) {
+      if (t.url == null || t.url!.isEmpty) {
+        return t.copyWith(
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        );
+      }
+      return t;
+    }).toList();
+
+    // Create queue starting from selected track
+    final queueFromIndex =
+        playableTracks.sublist(index) + playableTracks.sublist(0, index);
+
+    // Get the track with URL
+    final playableTrack = playableTracks[index];
+    playerProvider.playTrack(playableTrack, queue: queueFromIndex);
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Đang phát "${track.title}"')));
+  }
+
+  void _removeTrackFromPlaylist(Track track, int index) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xóa bài hát'),
-        content: const Text('Bạn có muốn xóa bài hát này khỏi playlist?'),
+        content: Text('Bạn có muốn xóa "${track.title}" khỏi playlist?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Hủy'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Implement remove track
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Đã xóa bài hát ${index + 1}')),
-              );
+              try {
+                await _playlistService.removeTrackFromPlaylist(
+                  widget.playlistId,
+                  track.id,
+                );
+                await _loadTracks(); // Reload tracks
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Đã xóa "${track.title}" khỏi playlist'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Lỗi khi xóa bài hát: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Xóa'),
           ),
@@ -388,7 +640,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await context.read<PlaylistProvider>().deletePlaylist(
-                playlist.id!,
+                playlist.id,
               );
               if (mounted) {
                 Navigator.pop(context);

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+
 import '../models/track.dart';
-import '../services/soundcloud_service.dart';
 import '../services/audio_service.dart';
+import '../services/soundcloud_service.dart';
 
 class PlayerProvider with ChangeNotifier {
   final SoundCloudService _sc = SoundCloudService();
@@ -30,7 +31,11 @@ class PlayerProvider with ChangeNotifier {
   }
 
   Future<void> playTrack(Track track, {List<Track>? queue}) async {
+    print('DEBUG PlayerProvider: playTrack called for "${track.title}"');
+    print('DEBUG PlayerProvider: Track URL: ${track.url}');
+
     if (queue != null) {
+      print('DEBUG PlayerProvider: Setting queue with ${queue.length} tracks');
       _queue = queue;
       _index = _queue.indexWhere((t) => t.id == track.id);
       if (_index == -1) _index = 0;
@@ -47,13 +52,28 @@ class PlayerProvider with ChangeNotifier {
 
   Future<void> _startCurrent() async {
     final t = current;
-    if (t == null) return;
-    final streamUrl =
-        await _sc.getTrackStreamUrlFromTrack(t) ?? t.raw?['stream_url'] ?? null;
-    if (streamUrl == null) {
-      debugPrint('No stream URL for track ${t.title}');
+    if (t == null) {
+      print('DEBUG PlayerProvider: No current track');
       return;
     }
+
+    print('DEBUG PlayerProvider: Starting track "${t.title}"');
+
+    // Priority: use track.url if available, otherwise try SoundCloud service
+    String? streamUrl = t.url;
+
+    if (streamUrl == null || streamUrl.isEmpty) {
+      print('DEBUG PlayerProvider: No direct URL, trying SoundCloud service');
+      streamUrl =
+          await _sc.getTrackStreamUrlFromTrack(t) ?? t.raw?['stream_url'];
+    }
+
+    if (streamUrl == null || streamUrl.isEmpty) {
+      print('DEBUG PlayerProvider: No stream URL found for track ${t.title}');
+      return;
+    }
+
+    print('DEBUG PlayerProvider: Playing URL: $streamUrl');
     await _audio.playUrl(streamUrl);
     notifyListeners();
   }

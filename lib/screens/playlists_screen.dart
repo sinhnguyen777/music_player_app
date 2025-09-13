@@ -206,9 +206,9 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
             return PlaylistTile(
               playlist: playlist,
               isGridView: true,
-              onTap: () => _openPlaylist(playlist.id!),
-              onEdit: () => _editPlaylist(playlist.id!),
-              onDelete: () => _deletePlaylist(playlist.id!),
+              onTap: () => _openPlaylist(playlist.id),
+              onEdit: () => _editPlaylist(playlist.id),
+              onDelete: () => _deletePlaylist(playlist.id),
             );
           },
         );
@@ -226,9 +226,9 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
             return PlaylistTile(
               playlist: playlist,
               isGridView: false,
-              onTap: () => _openPlaylist(playlist.id!),
-              onEdit: () => _editPlaylist(playlist.id!),
-              onDelete: () => _deletePlaylist(playlist.id!),
+              onTap: () => _openPlaylist(playlist.id),
+              onEdit: () => _editPlaylist(playlist.id),
+              onDelete: () => _deletePlaylist(playlist.id),
             );
           },
         );
@@ -250,7 +250,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
     }
   }
 
-  void _editPlaylist(int playlistId) async {
+  void _editPlaylist(String playlistId) async {
     final playlist = context.read<PlaylistProvider>().playlists.firstWhere(
       (p) => p.id == playlistId,
     );
