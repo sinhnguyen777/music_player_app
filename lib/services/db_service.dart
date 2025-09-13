@@ -1,5 +1,6 @@
-import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
+
 import '../models/user.dart';
 
 class DBService {
@@ -18,7 +19,7 @@ class DBService {
     final path = join(await getDatabasesPath(), 'music_app.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2, // Increased version for schema update
       onCreate: (db, v) async {
         await db.execute('''
         CREATE TABLE users(
@@ -32,8 +33,16 @@ class DBService {
         await db.execute('''
         CREATE TABLE playlists(
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          userId INTEGER,
-          title TEXT
+          name TEXT NOT NULL,
+          description TEXT,
+          userId INTEGER NOT NULL,
+          trackIds TEXT,
+          imageUrl TEXT,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL,
+          isPublic INTEGER DEFAULT 0,
+          trackCount INTEGER DEFAULT 0,
+          FOREIGN KEY (userId) REFERENCES users(id)
         )
       ''');
         await db.execute('''
@@ -52,6 +61,27 @@ class DBService {
           trackData TEXT
         )
       ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          // Drop and recreate playlists table with new schema
+          await db.execute('DROP TABLE IF EXISTS playlists');
+          await db.execute('''
+          CREATE TABLE playlists(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            userId INTEGER NOT NULL,
+            trackIds TEXT,
+            imageUrl TEXT,
+            createdAt TEXT NOT NULL,
+            updatedAt TEXT NOT NULL,
+            isPublic INTEGER DEFAULT 0,
+            trackCount INTEGER DEFAULT 0,
+            FOREIGN KEY (userId) REFERENCES users(id)
+          )
+        ''');
+        }
       },
     );
   }
