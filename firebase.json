@@ -1,0 +1,44 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "music-player-app-85a31",
+          "appId": "1:574084460310:android:f580513d382d96c5782a37",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "music-player-app-85a31",
+          "appId": "1:574084460310:ios:d8b8d60b5380f09e782a37",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "music-player-app-85a31",
+          "appId": "1:574084460310:ios:d8b8d60b5380f09e782a37",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "music-player-app-85a31",
+          "configurations": {
+            "android": "1:574084460310:android:f580513d382d96c5782a37",
+            "ios": "1:574084460310:ios:d8b8d60b5380f09e782a37",
+            "macos": "1:574084460310:ios:d8b8d60b5380f09e782a37",
+            "web": "1:574084460310:web:ac1735e3e0b94959782a37",
+            "windows": "1:574084460310:web:dd004d52c9f70156782a37"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "indexes": "firestore.indexes.json"
+  }
+}

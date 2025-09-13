@@ -1,15 +1,27 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 
+import 'firebase_options_secure.dart';
 import 'providers/auth_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/player_provider.dart';
+import 'providers/playlist_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/playlists_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/search_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Firebase with secure options
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const MyApp());
 }
 
@@ -30,6 +42,16 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => PlayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => HomeProvider()..init()),
+        ChangeNotifierProxyProvider<AuthProvider, PlaylistProvider>(
+          create: (context) => PlaylistProvider(null),
+          update: (context, auth, previous) {
+            // Always create a new PlaylistProvider when auth changes
+            print(
+              'PlaylistProvider update - Auth: ${auth.isAuthenticated}, User: ${auth.user?.name}',
+            );
+            return PlaylistProvider(auth);
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'SoundCloud Music',
@@ -63,7 +85,12 @@ class MainNav extends StatefulWidget {
 
 class _MainNavState extends State<MainNav> {
   int _index = 0;
-  final _pages = const [HomeScreen(), SearchScreen(), ProfileScreen()];
+  final _pages = const [
+    HomeScreen(),
+    PlaylistsScreen(),
+    SearchScreen(),
+    ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +99,14 @@ class _MainNavState extends State<MainNav> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         selectedItemColor: primaryGreen,
+        type: BottomNavigationBarType.fixed,
         onTap: (i) => setState(() => _index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.queue_music),
+            label: 'Playlists',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
