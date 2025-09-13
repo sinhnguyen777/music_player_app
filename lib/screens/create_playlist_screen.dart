@@ -260,7 +260,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
           id: widget.playlist!.id,
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
-          userId: widget.playlist!.userId,
+          userFirebaseUid: widget.playlist!.userFirebaseUid,
           trackIds: widget.playlist!.trackIds,
           imageUrl: _imageUrl,
           createdAt: widget.playlist!.createdAt,

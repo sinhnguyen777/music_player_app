@@ -39,14 +39,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Firebase authentication methods
-  Future<bool> register(
-    String name,
-    String email,
-    String password,
-  ) async {
+  Future<bool> register(String name, String email, String password) async {
     print('🔥 Starting Firebase registration for: $email');
     clearError();
-    
+
     try {
       final user = await _firebaseAuth.register(
         email: email,
@@ -79,7 +75,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> login(String email, String password) async {
     clearError();
-    
+
     try {
       final user = await _firebaseAuth.login(email: email, password: password);
 

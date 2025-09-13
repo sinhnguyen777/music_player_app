@@ -12,6 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/playlists_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/search_screen.dart';
+import 'widgets/mini_player.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -95,7 +96,17 @@ class _MainNavState extends State<MainNav> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_index],
+      body: Stack(
+        children: [
+          _pages[_index],
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Column(children: [MiniPlayer()]),
+          ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         selectedItemColor: primaryGreen,

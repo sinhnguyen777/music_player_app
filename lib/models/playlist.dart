@@ -1,30 +1,43 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'playlist_stats.dart';
+
 class Playlist {
-  final dynamic id; // Can be int (SQLite) or String (Firebase)
+  final String id; // Firebase document ID
   final String name;
   final String description;
-  final int? userId; // User ID from SQLite users table (legacy)
-  final String? userFirebaseUid; // Firebase UID (new)
-  final List<String> trackIds; // Track IDs from SoundCloud
+  final String userFirebaseUid; // Firebase UID
+  final List<String> trackIds; // Track document IDs
   final String? imageUrl; // Cover image
   final DateTime createdAt;
   final DateTime updatedAt;
-  final bool isPublic; // Public hoặc private playlist
-  final int trackCount; // Số lượng tracks
+  final bool isPublic; // Public or private playlist
+  final int trackCount; // Number of tracks
+  final List<String> genreTags; // Genre tags for categorization
+  final List<String> collaborators; // Firebase UIDs of collaborators
+  final String? lastTrackAddedBy; // Firebase UID of last user to add track
+  final DateTime? lastTrackAddedAt; // When the last track was added
+  final PlaylistStats stats; // Additional statistics
 
   Playlist({
-    this.id,
+    required this.id,
     required this.name,
+    required this.userFirebaseUid,
     this.description = '',
-    this.userId,
-    this.userFirebaseUid,
     this.trackIds = const [],
     this.imageUrl,
+    this.genreTags = const [],
+    this.collaborators = const [],
+    this.lastTrackAddedBy,
+    this.lastTrackAddedAt,
+    PlaylistStats? stats,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isPublic = false,
   }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now(),
-       trackCount = trackIds.length;
+       trackCount = trackIds.length,
+       stats = stats ?? PlaylistStats(lastUpdated: DateTime.now());
 
   // Convert to Firebase Firestore map
   Map<String, dynamic> toFirestoreMap() {
@@ -34,80 +47,73 @@ class Playlist {
       'userFirebaseUid': userFirebaseUid,
       'trackIds': trackIds,
       'imageUrl': imageUrl,
-      'createdAt': createdAt,
-      'updatedAt': updatedAt,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
       'isPublic': isPublic,
+      'trackCount': trackCount,
+      'genreTags': genreTags,
+      'collaborators': collaborators,
+      'lastTrackAddedBy': lastTrackAddedBy,
+      'lastTrackAddedAt': lastTrackAddedAt?.toIso8601String(),
+      'stats': stats.toFirestore(),
     };
   }
 
   // Create from Firebase Firestore map
   factory Playlist.fromFirestoreMap(Map<String, dynamic> map, String docId) {
+    final trackIds = List<String>.from(map['trackIds'] ?? []);
+
     return Playlist(
-      id: docId, // Use Firestore document ID
+      id: docId,
       name: map['name'] ?? '',
       description: map['description'] ?? '',
-      userFirebaseUid: map['userFirebaseUid'],
-      trackIds: List<String>.from(map['trackIds'] ?? []),
+      userFirebaseUid: map['userFirebaseUid'] ?? '',
+      trackIds: trackIds,
       imageUrl: map['imageUrl'],
+      genreTags: List<String>.from(map['genreTags'] ?? []),
+      collaborators: List<String>.from(map['collaborators'] ?? []),
+      lastTrackAddedBy: map['lastTrackAddedBy'],
+      lastTrackAddedAt: map['lastTrackAddedAt'] != null
+          ? (map['lastTrackAddedAt'] is Timestamp
+                ? (map['lastTrackAddedAt'] as Timestamp).toDate()
+                : (map['lastTrackAddedAt'] is String
+                      ? DateTime.parse(map['lastTrackAddedAt'])
+                      : DateTime.now()))
+          : null,
+      stats: map['stats'] != null
+          ? PlaylistStats.fromFirestore(map['stats'])
+          : PlaylistStats(lastUpdated: DateTime.now()),
       createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as dynamic).toDate()
+          ? (map['createdAt'] is Timestamp
+                ? (map['createdAt'] as Timestamp).toDate()
+                : (map['createdAt'] is String
+                      ? DateTime.parse(map['createdAt'])
+                      : DateTime.now()))
           : DateTime.now(),
       updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as dynamic).toDate()
+          ? (map['updatedAt'] is Timestamp
+                ? (map['updatedAt'] as Timestamp).toDate()
+                : (map['updatedAt'] is String
+                      ? DateTime.parse(map['updatedAt'])
+                      : DateTime.now()))
           : DateTime.now(),
       isPublic: map['isPublic'] ?? false,
     );
   }
 
-  // Convert to SQLite map
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'description': description,
-      'userId': userId,
-      'trackIds': trackIds.join(','), // Convert list to comma-separated string
-      'imageUrl': imageUrl,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-      'isPublic': isPublic ? 1 : 0, // SQLite boolean as int
-      'trackCount': trackIds.length,
-    };
-  }
-
-  // Create from SQLite map
-  factory Playlist.fromMap(Map<String, dynamic> map) {
-    final trackIdsString = map['trackIds'] as String? ?? '';
-    final trackIdsList = trackIdsString.isEmpty
-        ? <String>[]
-        : trackIdsString.split(',').where((id) => id.isNotEmpty).toList();
-
-    return Playlist(
-      id: map['id'] as int?,
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      userId: map['userId'] ?? 0,
-      trackIds: trackIdsList,
-      imageUrl: map['imageUrl'],
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'])
-          : DateTime.now(),
-      updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
-          : DateTime.now(),
-      isPublic: (map['isPublic'] ?? 0) == 1,
-    );
-  }
-
   // Copy with method for updates
   Playlist copyWith({
-    dynamic id,
+    String? id,
     String? name,
     String? description,
-    int? userId,
     String? userFirebaseUid,
     List<String>? trackIds,
     String? imageUrl,
+    List<String>? genreTags,
+    List<String>? collaborators,
+    String? lastTrackAddedBy,
+    DateTime? lastTrackAddedAt,
+    PlaylistStats? stats,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isPublic,
@@ -116,10 +122,14 @@ class Playlist {
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
-      userId: userId ?? this.userId,
       userFirebaseUid: userFirebaseUid ?? this.userFirebaseUid,
       trackIds: trackIds ?? this.trackIds,
       imageUrl: imageUrl ?? this.imageUrl,
+      genreTags: genreTags ?? this.genreTags,
+      collaborators: collaborators ?? this.collaborators,
+      lastTrackAddedBy: lastTrackAddedBy ?? this.lastTrackAddedBy,
+      lastTrackAddedAt: lastTrackAddedAt ?? this.lastTrackAddedAt,
+      stats: stats ?? this.stats,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       isPublic: isPublic ?? this.isPublic,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:music_player_app/providers/auth_provider.dart';
 
 import '../models/playlist.dart';
+import '../models/track.dart';
 import '../services/firebase_playlist_service.dart';
 
 class PlaylistProvider with ChangeNotifier {
@@ -33,12 +34,17 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   void _onAuthChanged() {
-    print('Auth changed - User Firebase UID: $_userFirebaseUid');
+    print('🔄 Auth changed - User Firebase UID: $_userFirebaseUid');
+    print('🔄 Auth authenticated: ${authProvider?.isAuthenticated}');
+    print('🔄 Auth user: ${authProvider?.user?.email}');
+
     if (_userFirebaseUid != null) {
       // User logged in, load playlists
+      print('🔄 User logged in, loading playlists...');
       loadUserPlaylists();
     } else {
       // User logged out, clear playlists
+      print('🔄 User logged out, clearing playlists...');
       clear();
     }
   }
@@ -75,8 +81,15 @@ class PlaylistProvider with ChangeNotifier {
       notifyListeners();
       return;
     }
+
     _setLoading(true);
     try {
+      // Test connection first
+      final connectionOk = await _firebasePlaylistService.testConnection();
+      if (!connectionOk) {
+        throw Exception('Firestore connection failed');
+      }
+
       print('🔥 Calling Firebase service...');
       _playlists = await _firebasePlaylistService.getUserPlaylists(
         _userFirebaseUid!,
@@ -177,11 +190,16 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   // Add track to playlist
-  Future<bool> addTrackToPlaylist(String playlistId, String trackId) async {
+  Future<bool> addTrackToPlaylist(
+    String playlistId,
+    Track track,
+    String addedBy,
+  ) async {
     try {
       final success = await _firebasePlaylistService.addTrackToPlaylist(
         playlistId,
-        trackId,
+        track,
+        addedBy,
       );
       if (success) {
         await _refreshPlaylist(playlistId);
@@ -247,16 +265,20 @@ class PlaylistProvider with ChangeNotifier {
   // Load playlist by ID
   Future<Playlist?> loadPlaylistById(String playlistId) async {
     try {
+      _setLoading(true);
       final playlist = await _firebasePlaylistService.getPlaylistById(
         playlistId,
       );
       if (playlist != null) {
+        _currentPlaylist = playlist;
         _clearError();
       }
       return playlist;
     } catch (e) {
       _setError('Failed to load playlist: ${e.toString()}');
       return null;
+    } finally {
+      _setLoading(false);
     }
   }
 

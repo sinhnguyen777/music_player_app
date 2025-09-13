@@ -1,10 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/playlist.dart';
+import '../models/track.dart';
 
 class FirebasePlaylistService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'playlists';
+
+  // Test Firestore connection
+  Future<bool> testConnection() async {
+    try {
+      print('🔥 Testing Firestore connection...');
+      await _firestore.collection('test').doc('connection').get();
+      print('🔥 Firestore connection test successful');
+      return true;
+    } catch (e) {
+      print('❌ Firestore connection test failed: $e');
+      return false;
+    }
+  }
 
   // Create a new playlist
   Future<Playlist?> createPlaylist({
@@ -15,6 +29,7 @@ class FirebasePlaylistService {
     String? imageUrl,
   }) async {
     try {
+      print('🔥 Creating playlist: $name for user: $userFirebaseUid');
       final docRef = _firestore.collection(_collection).doc();
       final now = DateTime.now();
 
@@ -30,10 +45,24 @@ class FirebasePlaylistService {
         isPublic: isPublic,
       );
 
-      await docRef.set(playlist.toFirestoreMap());
+      final firestoreData = playlist.toFirestoreMap();
+      print('🔥 Playlist data to save: $firestoreData');
+
+      await docRef.set(firestoreData);
+      print('🔥 Playlist saved successfully with ID: ${docRef.id}');
+
+      // Verify the playlist was saved
+      final savedDoc = await docRef.get();
+      if (savedDoc.exists) {
+        print('🔥 Verification: Playlist exists in Firestore');
+      } else {
+        print('❌ Verification failed: Playlist not found in Firestore');
+      }
+
       return playlist;
     } catch (e) {
-      print('Error creating playlist: $e');
+      print('❌ Error creating playlist: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
       return null;
     }
   }
@@ -42,26 +71,60 @@ class FirebasePlaylistService {
   Future<List<Playlist>> getUserPlaylists(String userFirebaseUid) async {
     try {
       print('🔥 Firebase Service: Getting playlists for UID: $userFirebaseUid');
-      final querySnapshot = await _firestore
+
+      // First, let's try without orderBy to see if that's the issue
+      print('🔥 Firebase Service: Trying query without orderBy first...');
+      final simpleQuery = await _firestore
           .collection(_collection)
           .where('userFirebaseUid', isEqualTo: userFirebaseUid)
-          .orderBy('updatedAt', descending: true)
           .get();
 
       print(
-        '🔥 Firebase Service: Found ${querySnapshot.docs.length} documents',
+        '🔥 Firebase Service: Simple query found ${simpleQuery.docs.length} documents',
       );
 
-      final playlists = querySnapshot.docs
-          .map((doc) => Playlist.fromFirestoreMap(doc.data(), doc.id))
-          .toList();
+      if (simpleQuery.docs.isNotEmpty) {
+        // If simple query works, try with orderBy
+        try {
+          print('🔥 Firebase Service: Trying query with orderBy...');
+          final querySnapshot = await _firestore
+              .collection(_collection)
+              .where('userFirebaseUid', isEqualTo: userFirebaseUid)
+              .orderBy('updatedAt', descending: true)
+              .get();
 
-      print(
-        '🔥 Firebase Service: Converted to ${playlists.length} playlist objects',
-      );
-      return playlists;
+          print(
+            '🔥 Firebase Service: OrderBy query found ${querySnapshot.docs.length} documents',
+          );
+
+          // Log the raw data for debugging
+          for (var doc in querySnapshot.docs) {
+            print('🔥 Raw document data: ${doc.data()}');
+          }
+
+          final playlists = querySnapshot.docs
+              .map((doc) => Playlist.fromFirestoreMap(doc.data(), doc.id))
+              .toList();
+
+          print(
+            '🔥 Firebase Service: Converted to ${playlists.length} playlist objects',
+          );
+          return playlists;
+        } catch (orderByError) {
+          print('❌ OrderBy failed, using simple query: $orderByError');
+          // Fall back to simple query if orderBy fails
+          final playlists = simpleQuery.docs
+              .map((doc) => Playlist.fromFirestoreMap(doc.data(), doc.id))
+              .toList();
+          return playlists;
+        }
+      } else {
+        print('🔥 Firebase Service: No documents found for user');
+        return [];
+      }
     } catch (e) {
-      print('Error getting user playlists: $e');
+      print('❌ Error getting user playlists: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
       return [];
     }
   }
@@ -109,26 +172,72 @@ class FirebasePlaylistService {
     }
   }
 
-  // Add track to playlist
-  Future<bool> addTrackToPlaylist(String playlistId, String trackId) async {
+  // Add track to playlist with enhanced stats
+  Future<bool> addTrackToPlaylist(
+    String playlistId,
+    Track track,
+    String addedBy,
+  ) async {
     try {
       final doc = _firestore.collection(_collection).doc(playlistId);
+      final trackDoc = _firestore
+          .collection('tracks')
+          .doc(); // Generate new track document ID
+      final now = DateTime.now();
 
       await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(doc);
-
-        if (!snapshot.exists) {
+        // Get playlist
+        final playlistSnapshot = await transaction.get(doc);
+        if (!playlistSnapshot.exists) {
           throw Exception('Playlist not found');
         }
 
-        final data = snapshot.data()!;
-        final trackIds = List<String>.from(data['trackIds'] ?? []);
+        // Get current playlist data
+        final playlist = Playlist.fromFirestoreMap(
+          playlistSnapshot.data()!,
+          playlistSnapshot.id,
+        );
+        final trackIds = List<String>.from(playlist.trackIds);
+        final trackCount = trackIds.length;
 
-        if (!trackIds.contains(trackId)) {
-          trackIds.add(trackId);
+        // Create track with metadata
+        final trackWithMetadata = track.copyWith(
+          addedAt: now,
+          addedBy: addedBy,
+          trackNumber: trackCount + 1,
+        );
+
+        // Save track data
+        transaction.set(trackDoc, trackWithMetadata.toFirestore());
+
+        // Add track reference to playlist and update stats
+        if (!trackIds.contains(trackDoc.id)) {
+          trackIds.add(trackDoc.id);
+
+          // Update playlist stats
+          final currentStats = playlist.stats;
+          final updatedStats = currentStats.copyWith(
+            totalTracks: currentStats.totalTracks + 1,
+            totalDuration: currentStats.totalDuration + track.duration,
+            lastUpdated: now,
+          );
+
+          // Update genre tags
+          final updatedGenreTags = {...playlist.genreTags};
+          updatedGenreTags.addAll(track.genres);
+
+          // Update artist and genre counts
+          updatedStats.updateArtistCount(track.artist, increment: true);
+          updatedStats.updateGenreCounts(track.genres, increment: true);
+
           transaction.update(doc, {
             'trackIds': trackIds,
-            'updatedAt': FieldValue.serverTimestamp(),
+            'updatedAt': now.toIso8601String(),
+            'trackCount': trackIds.length,
+            'lastTrackAddedAt': now.toIso8601String(),
+            'lastTrackAddedBy': addedBy,
+            'stats': updatedStats.toFirestore(),
+            'genreTags': updatedGenreTags.toList(),
           });
         }
       });
@@ -140,29 +249,69 @@ class FirebasePlaylistService {
     }
   }
 
-  // Remove track from playlist
+  // Remove track from playlist with stats update
   Future<bool> removeTrackFromPlaylist(
     String playlistId,
     String trackId,
   ) async {
     try {
-      final doc = _firestore.collection(_collection).doc(playlistId);
+      final playlistRef = _firestore.collection(_collection).doc(playlistId);
+      final trackRef = _firestore.collection('tracks').doc(trackId);
 
       await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(doc);
-
-        if (!snapshot.exists) {
+        final playlistSnapshot = await transaction.get(playlistRef);
+        if (!playlistSnapshot.exists) {
           throw Exception('Playlist not found');
         }
 
-        final data = snapshot.data()!;
-        final trackIds = List<String>.from(data['trackIds'] ?? []);
+        final playlist = Playlist.fromFirestoreMap(
+          playlistSnapshot.data()!,
+          playlistSnapshot.id,
+        );
+        final trackIds = List<String>.from(playlist.trackIds);
 
-        trackIds.remove(trackId);
-        transaction.update(doc, {
-          'trackIds': trackIds,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+        // Get track data for stats update
+        final trackDoc = await transaction.get(trackRef);
+        if (!trackDoc.exists) {
+          throw Exception('Track not found');
+        }
+
+        final track = Track.fromFirestore(trackDoc.data()!);
+
+        if (trackIds.remove(trackId)) {
+          final now = DateTime.now();
+          final currentStats = playlist.stats;
+
+          // Update playlist stats
+          final updatedStats = currentStats.copyWith(
+            totalTracks: currentStats.totalTracks - 1,
+            totalDuration: currentStats.totalDuration - track.duration,
+            lastUpdated: now,
+          );
+
+          // Update genre and artist counts
+          updatedStats.updateGenreCounts(track.genres, increment: false);
+          updatedStats.updateArtistCount(track.artist, increment: false);
+
+          // Update playlist document
+          transaction.update(playlistRef, {
+            'trackIds': trackIds,
+            'updatedAt': now.toIso8601String(),
+            'trackCount': trackIds.length,
+            'stats': updatedStats.toFirestore(),
+          });
+
+          // Check if track is used in other playlists
+          final trackUsage = await _firestore
+              .collection(_collection)
+              .where('trackIds', arrayContains: trackId)
+              .get();
+
+          if (trackUsage.docs.length <= 1) {
+            // Only used in this playlist, safe to delete
+            transaction.delete(trackRef);
+          }
+        }
       });
 
       return true;
@@ -170,6 +319,59 @@ class FirebasePlaylistService {
       print('Error removing track from playlist: $e');
       return false;
     }
+  }
+
+  // Get tracks from playlist
+  Future<List<Track>> getPlaylistTracks(String playlistId) async {
+    try {
+      final playlist = await getPlaylistById(playlistId);
+      if (playlist == null || playlist.trackIds.isEmpty) {
+        return [];
+      }
+
+      final trackDocs = await Future.wait(
+        playlist.trackIds.map(
+          (id) => _firestore.collection('tracks').doc(id).get(),
+        ),
+      );
+
+      return trackDocs
+          .where((doc) => doc.exists && doc.data() != null)
+          .map((doc) => Track.fromFirestore(doc.data()!))
+          .toList();
+    } catch (e) {
+      print('Error getting playlist tracks: $e');
+      return [];
+    }
+  }
+
+  // Get track stream for real-time updates
+  Stream<List<Track>> getPlaylistTracksStream(String playlistId) {
+    return _firestore
+        .collection(_collection)
+        .doc(playlistId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          if (!snapshot.exists || snapshot.data() == null) {
+            return [];
+          }
+
+          final trackIds = List<String>.from(
+            snapshot.data()!['trackIds'] ?? [],
+          );
+          if (trackIds.isEmpty) {
+            return [];
+          }
+
+          final trackDocs = await Future.wait(
+            trackIds.map((id) => _firestore.collection('tracks').doc(id).get()),
+          );
+
+          return trackDocs
+              .where((doc) => doc.exists && doc.data() != null)
+              .map((doc) => Track.fromFirestore(doc.data()!))
+              .toList();
+        });
   }
 
   // Reorder tracks in playlist
@@ -195,6 +397,15 @@ class FirebasePlaylistService {
           final item = trackIds.removeAt(oldIndex);
           trackIds.insert(newIndex, item);
 
+          // Update track numbers
+          final trackUpdates = <Future<void>>[];
+          for (var i = 0; i < trackIds.length; i++) {
+            final trackRef = _firestore.collection('tracks').doc(trackIds[i]);
+            trackUpdates.add(trackRef.update({'trackNumber': i + 1}));
+          }
+          await Future.wait(trackUpdates);
+
+          // Update playlist
           transaction.update(doc, {
             'trackIds': trackIds,
             'updatedAt': FieldValue.serverTimestamp(),
@@ -205,6 +416,110 @@ class FirebasePlaylistService {
       return true;
     } catch (e) {
       print('Error reordering tracks: $e');
+      return false;
+    }
+  }
+
+  // Add multiple tracks to playlist
+  Future<bool> addTracksToPlaylist(
+    String playlistId,
+    List<Track> tracks,
+    String addedBy,
+  ) async {
+    try {
+      final doc = _firestore.collection(_collection).doc(playlistId);
+      final now = DateTime.now();
+
+      await _firestore.runTransaction((transaction) async {
+        // Get playlist
+        final playlistSnapshot = await transaction.get(doc);
+        if (!playlistSnapshot.exists) {
+          throw Exception('Playlist not found');
+        }
+
+        // Get current track list and count
+        final data = playlistSnapshot.data()!;
+        final trackIds = List<String>.from(data['trackIds'] ?? []);
+        var trackCount = trackIds.length;
+
+        // Add each track
+        for (var track in tracks) {
+          final trackDoc = _firestore.collection('tracks').doc();
+          trackCount++;
+
+          // Create track with metadata
+          final trackWithMetadata = track.copyWith(
+            addedAt: now,
+            addedBy: addedBy,
+            trackNumber: trackCount,
+          );
+
+          // Save track data
+          transaction.set(trackDoc, trackWithMetadata.toFirestore());
+          trackIds.add(trackDoc.id);
+        }
+
+        // Update playlist
+        transaction.update(doc, {
+          'trackIds': trackIds,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'trackCount': trackIds.length,
+          'lastTrackAddedAt': now.toIso8601String(),
+        });
+      });
+
+      return true;
+    } catch (e) {
+      print('Error adding tracks to playlist: $e');
+      return false;
+    }
+  }
+
+  // Move track to position
+  Future<bool> moveTrackToPosition(
+    String playlistId,
+    String trackId,
+    int newPosition,
+  ) async {
+    try {
+      final doc = _firestore.collection(_collection).doc(playlistId);
+
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(doc);
+
+        if (!snapshot.exists) {
+          throw Exception('Playlist not found');
+        }
+
+        final data = snapshot.data()!;
+        final trackIds = List<String>.from(data['trackIds'] ?? []);
+        final currentIndex = trackIds.indexOf(trackId);
+
+        if (currentIndex != -1 &&
+            newPosition >= 0 &&
+            newPosition < trackIds.length) {
+          trackIds.removeAt(currentIndex);
+          trackIds.insert(newPosition, trackId);
+
+          // Update track numbers
+          final trackUpdates = <Future<void>>[];
+          for (var i = 0; i < trackIds.length; i++) {
+            final trackRef = _firestore.collection('tracks').doc(trackIds[i]);
+            trackUpdates.add(trackRef.update({'trackNumber': i + 1}));
+          }
+          await Future.wait(trackUpdates);
+
+          // Update playlist
+          transaction.update(doc, {
+            'trackIds': trackIds,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+
+      return true;
+    } catch (e) {
+      print('Error moving track: $e');
       return false;
     }
   }
