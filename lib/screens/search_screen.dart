@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/soundcloud_service.dart';
+
 import '../models/track.dart';
+import '../services/soundcloud_service.dart';
 import '../widgets/track_tile.dart';
 
 class SearchScreen extends StatefulWidget {

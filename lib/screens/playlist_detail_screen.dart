@@ -5,7 +5,7 @@ import '../models/playlist.dart';
 import '../providers/playlist_provider.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
-  final int playlistId;
+  final String playlistId;
 
   const PlaylistDetailScreen({super.key, required this.playlistId});
 

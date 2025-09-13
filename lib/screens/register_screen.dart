@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -17,7 +18,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(title: const Text('Register')),
       body: Padding(
@@ -44,22 +44,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onPressed: _loading
                   ? null
                   : () async {
-                      setState(() => _loading = true);
-                      final ok = await auth.register(
-                        _name.text.trim(),
-                        _email.text.trim(),
-                        _pass.text,
-                      );
-                      setState(() => _loading = false);
-                      if (ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Register success. Login now.'),
-                          ),
+                      setState(() {
+                        _loading = true;
+                        _err = null;
+                      });
+
+                      try {
+                        final auth = Provider.of<AuthProvider>(
+                          context,
+                          listen: false,
                         );
-                        Navigator.pop(context);
-                      } else {
-                        setState(() => _err = 'Email already exists');
+                        final ok = await auth.register(
+                          _name.text.trim(),
+                          _email.text.trim(),
+                          _pass.text,
+                        );
+
+                        setState(() => _loading = false);
+
+                        if (ok) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Đăng ký thành công! Bạn có thể đăng nhập ngay.',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                          Navigator.pop(context);
+                        } else {
+                          setState(
+                            () =>
+                                _err = auth.errorMessage ?? 'Đăng ký thất bại',
+                          );
+                        }
+                      } catch (e) {
+                        setState(() {
+                          _loading = false;
+                          _err = 'Lỗi: ${e.toString()}';
+                        });
+                        print('Register error: $e');
                       }
                     },
               child: _loading

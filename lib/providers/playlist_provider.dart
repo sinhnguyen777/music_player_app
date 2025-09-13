@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:music_player_app/providers/auth_provider.dart';
 
 import '../models/playlist.dart';
-import '../services/playlist_service.dart';
+import '../services/firebase_playlist_service.dart';
 
 class PlaylistProvider with ChangeNotifier {
-  final PlaylistService _playlistService = PlaylistService();
+  final FirebasePlaylistService _firebasePlaylistService =
+      FirebasePlaylistService();
   final AuthProvider? authProvider;
-  int? get _userId => authProvider?.user?.id;
+
+  // Get Firebase UID for current user
+  String? get _userFirebaseUid => authProvider?.user?.firebaseUid;
 
   List<Playlist> _playlists = [];
   Playlist? _currentPlaylist;
@@ -15,9 +18,35 @@ class PlaylistProvider with ChangeNotifier {
   String? _errorMessage;
 
   PlaylistProvider(this.authProvider) {
-    if (_userId != null) {
+    // Add debugging
+    print(
+      'PlaylistProvider initialized with auth: ${authProvider?.isAuthenticated}',
+    );
+    print('User Firebase UID: $_userFirebaseUid');
+
+    if (_userFirebaseUid != null) {
       loadUserPlaylists();
     }
+
+    // Listen to auth changes
+    authProvider?.addListener(_onAuthChanged);
+  }
+
+  void _onAuthChanged() {
+    print('Auth changed - User Firebase UID: $_userFirebaseUid');
+    if (_userFirebaseUid != null) {
+      // User logged in, load playlists
+      loadUserPlaylists();
+    } else {
+      // User logged out, clear playlists
+      clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    authProvider?.removeListener(_onAuthChanged);
+    super.dispose();
   }
 
   // Getters
@@ -31,18 +60,31 @@ class PlaylistProvider with ChangeNotifier {
     // Load initial data if needed
   }
 
+  // Manual refresh method for UI
+  Future<void> refreshPlaylists() async {
+    print('🔄 Manual refresh playlists called');
+    await loadUserPlaylists();
+  }
+
   // Load user playlists
   Future<void> loadUserPlaylists() async {
-    if (_userId == null) {
+    print('🔥 Loading playlists for user: $_userFirebaseUid');
+    if (_userFirebaseUid == null) {
+      print('❌ No Firebase UID available');
       _playlists = [];
       notifyListeners();
       return;
     }
     _setLoading(true);
     try {
-      _playlists = await _playlistService.getUserPlaylists(_userId!);
+      print('🔥 Calling Firebase service...');
+      _playlists = await _firebasePlaylistService.getUserPlaylists(
+        _userFirebaseUid!,
+      );
+      print('🔥 Loaded ${_playlists.length} playlists from Firebase');
       _clearError();
     } catch (e) {
+      print('❌ Error loading playlists: $e');
       _setError('Failed to load playlists: ${e.toString()}');
     } finally {
       _setLoading(false);
@@ -55,15 +97,24 @@ class PlaylistProvider with ChangeNotifier {
     String description = '',
     bool isPublic = false,
   }) async {
-    if (_userId == null) {
-      _setError('User not logged in');
+    print(
+      'Creating playlist - User Firebase UID: $_userFirebaseUid, Auth: ${authProvider?.isAuthenticated}',
+    );
+
+    if (_userFirebaseUid == null) {
+      final errorMsg =
+          'User not logged in - Auth: ${authProvider?.isAuthenticated}, User: ${authProvider?.user?.name}';
+      print('Error: $errorMsg');
+      _setError(errorMsg);
       return false;
     }
+
     _setLoading(true);
     try {
-      final playlist = await _playlistService.createPlaylist(
+      print('Calling createPlaylist with userFirebaseUid: $_userFirebaseUid');
+      final playlist = await _firebasePlaylistService.createPlaylist(
         name: name,
-        userId: _userId!,
+        userFirebaseUid: _userFirebaseUid!,
         description: description,
         isPublic: isPublic,
       );
@@ -76,6 +127,7 @@ class PlaylistProvider with ChangeNotifier {
       }
       return false;
     } catch (e) {
+      print('Create playlist error: $e');
       _setError('Failed to create playlist: ${e.toString()}');
       return false;
     } finally {
@@ -86,7 +138,7 @@ class PlaylistProvider with ChangeNotifier {
   // Update playlist
   Future<bool> updatePlaylist(Playlist playlist) async {
     try {
-      final success = await _playlistService.updatePlaylist(playlist);
+      final success = await _firebasePlaylistService.updatePlaylist(playlist);
       if (success) {
         final index = _playlists.indexWhere((p) => p.id == playlist.id);
         if (index != -1) {
@@ -106,9 +158,9 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   // Delete playlist
-  Future<bool> deletePlaylist(int playlistId) async {
+  Future<bool> deletePlaylist(String playlistId) async {
     try {
-      final success = await _playlistService.deletePlaylist(playlistId);
+      final success = await _firebasePlaylistService.deletePlaylist(playlistId);
       if (success) {
         _playlists.removeWhere((p) => p.id == playlistId);
         if (_currentPlaylist?.id == playlistId) {
@@ -125,9 +177,9 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   // Add track to playlist
-  Future<bool> addTrackToPlaylist(int playlistId, String trackId) async {
+  Future<bool> addTrackToPlaylist(String playlistId, String trackId) async {
     try {
-      final success = await _playlistService.addTrackToPlaylist(
+      final success = await _firebasePlaylistService.addTrackToPlaylist(
         playlistId,
         trackId,
       );
@@ -143,9 +195,12 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   // Remove track from playlist
-  Future<bool> removeTrackFromPlaylist(int playlistId, String trackId) async {
+  Future<bool> removeTrackFromPlaylist(
+    String playlistId,
+    String trackId,
+  ) async {
     try {
-      final success = await _playlistService.removeTrackFromPlaylist(
+      final success = await _firebasePlaylistService.removeTrackFromPlaylist(
         playlistId,
         trackId,
       );
@@ -162,12 +217,12 @@ class PlaylistProvider with ChangeNotifier {
 
   // Reorder tracks in playlist
   Future<bool> reorderPlaylistTracks(
-    int playlistId,
+    String playlistId,
     int oldIndex,
     int newIndex,
   ) async {
     try {
-      final success = await _playlistService.reorderPlaylistTracks(
+      final success = await _firebasePlaylistService.reorderPlaylistTracks(
         playlistId,
         oldIndex,
         newIndex,
@@ -190,9 +245,11 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   // Load playlist by ID
-  Future<Playlist?> loadPlaylistById(int playlistId) async {
+  Future<Playlist?> loadPlaylistById(String playlistId) async {
     try {
-      final playlist = await _playlistService.getPlaylistById(playlistId);
+      final playlist = await _firebasePlaylistService.getPlaylistById(
+        playlistId,
+      );
       if (playlist != null) {
         _clearError();
       }
@@ -205,9 +262,12 @@ class PlaylistProvider with ChangeNotifier {
 
   // Search playlists
   Future<List<Playlist>> searchPlaylists(String query) async {
-    if (_userId == null) return [];
+    if (_userFirebaseUid == null) return [];
     try {
-      final results = await _playlistService.searchPlaylists(query, _userId!);
+      final results = await _firebasePlaylistService.searchPlaylists(
+        query,
+        _userFirebaseUid!,
+      );
       _clearError();
       return results;
     } catch (e) {
@@ -218,12 +278,10 @@ class PlaylistProvider with ChangeNotifier {
 
   // Get playlists containing a track
   Future<List<Playlist>> getPlaylistsContainingTrack(String trackId) async {
-    if (_userId == null) return [];
+    if (_userFirebaseUid == null) return [];
     try {
-      final results = await _playlistService.getPlaylistsContainingTrack(
-        trackId,
-        _userId!,
-      );
+      final results = await _firebasePlaylistService
+          .getPlaylistsContainingTrack(trackId, _userFirebaseUid!);
       _clearError();
       return results;
     } catch (e) {
@@ -245,8 +303,10 @@ class PlaylistProvider with ChangeNotifier {
   }
 
   // Refresh specific playlist
-  Future<void> _refreshPlaylist(int playlistId) async {
-    final updatedPlaylist = await _playlistService.getPlaylistById(playlistId);
+  Future<void> _refreshPlaylist(String playlistId) async {
+    final updatedPlaylist = await _firebasePlaylistService.getPlaylistById(
+      playlistId,
+    );
     if (updatedPlaylist != null) {
       final index = _playlists.indexWhere((p) => p.id == playlistId);
       if (index != -1) {

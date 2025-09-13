@@ -22,7 +22,14 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PlaylistProvider>().loadUserPlaylists();
+      final authProvider = context.read<AuthProvider>();
+      final playlistProvider = context.read<PlaylistProvider>();
+
+      print('🔄 PlaylistsScreen init - Auth: ${authProvider.isAuthenticated}');
+      print('🔄 User: ${authProvider.user?.name}');
+      print('🔄 Firebase UID: ${authProvider.user?.firebaseUid}');
+
+      playlistProvider.loadUserPlaylists();
     });
   }
 
@@ -38,6 +45,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       appBar: AppBar(
         title: const Text('Playlists của tôi'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              context.read<PlaylistProvider>().refreshPlaylists();
+            },
+          ),
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
             onPressed: () {
@@ -56,6 +69,13 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       ),
       body: Consumer<PlaylistProvider>(
         builder: (context, playlistProvider, child) {
+          // Debug info
+          print(
+            '🔄 PlaylistsScreen rebuild - Loading: ${playlistProvider.isLoading}',
+          );
+          print('🔄 Playlists count: ${playlistProvider.playlists.length}');
+          print('🔄 Error: ${playlistProvider.errorMessage}');
+
           if (playlistProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -250,7 +270,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
     }
   }
 
-  void _openPlaylist(int playlistId) {
+  void _openPlaylist(String playlistId) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -259,7 +279,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
     );
   }
 
-  void _deletePlaylist(int playlistId) {
+  void _deletePlaylist(String playlistId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

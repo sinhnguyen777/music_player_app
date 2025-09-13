@@ -1,9 +1,10 @@
 class Playlist {
-  final int? id; // SQLite primary key
+  final dynamic id; // Can be int (SQLite) or String (Firebase)
   final String name;
   final String description;
-  final int userId; // User ID from SQLite users table
-  final List<String> trackIds; // JSON string of track IDs from SoundCloud
+  final int? userId; // User ID from SQLite users table (legacy)
+  final String? userFirebaseUid; // Firebase UID (new)
+  final List<String> trackIds; // Track IDs from SoundCloud
   final String? imageUrl; // Cover image
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -14,7 +15,8 @@ class Playlist {
     this.id,
     required this.name,
     this.description = '',
-    required this.userId,
+    this.userId,
+    this.userFirebaseUid,
     this.trackIds = const [],
     this.imageUrl,
     DateTime? createdAt,
@@ -23,6 +25,39 @@ class Playlist {
   }) : createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now(),
        trackCount = trackIds.length;
+
+  // Convert to Firebase Firestore map
+  Map<String, dynamic> toFirestoreMap() {
+    return {
+      'name': name,
+      'description': description,
+      'userFirebaseUid': userFirebaseUid,
+      'trackIds': trackIds,
+      'imageUrl': imageUrl,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+      'isPublic': isPublic,
+    };
+  }
+
+  // Create from Firebase Firestore map
+  factory Playlist.fromFirestoreMap(Map<String, dynamic> map, String docId) {
+    return Playlist(
+      id: docId, // Use Firestore document ID
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      userFirebaseUid: map['userFirebaseUid'],
+      trackIds: List<String>.from(map['trackIds'] ?? []),
+      imageUrl: map['imageUrl'],
+      createdAt: map['createdAt'] != null
+          ? (map['createdAt'] as dynamic).toDate()
+          : DateTime.now(),
+      updatedAt: map['updatedAt'] != null
+          ? (map['updatedAt'] as dynamic).toDate()
+          : DateTime.now(),
+      isPublic: map['isPublic'] ?? false,
+    );
+  }
 
   // Convert to SQLite map
   Map<String, dynamic> toMap() {
@@ -66,10 +101,11 @@ class Playlist {
 
   // Copy with method for updates
   Playlist copyWith({
-    int? id,
+    dynamic id,
     String? name,
     String? description,
     int? userId,
+    String? userFirebaseUid,
     List<String>? trackIds,
     String? imageUrl,
     DateTime? createdAt,
@@ -81,6 +117,7 @@ class Playlist {
       name: name ?? this.name,
       description: description ?? this.description,
       userId: userId ?? this.userId,
+      userFirebaseUid: userFirebaseUid ?? this.userFirebaseUid,
       trackIds: trackIds ?? this.trackIds,
       imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,

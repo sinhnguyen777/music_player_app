@@ -1,35 +1,81 @@
 class UserModel {
-  final int? id;
   final String name;
   final String email;
-  final String passwordHash; // hashed password
   final String? avatarUrl;
+  final String firebaseUid;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   UserModel({
-    this.id,
     required this.name,
     required this.email,
-    required this.passwordHash,
     this.avatarUrl,
+    required this.firebaseUid,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  Map<String, dynamic> toMap() {
+  // Firebase Firestore map
+  Map<String, dynamic> toFirestoreMap() {
     return {
-      'id': id,
       'name': name,
       'email': email,
-      'password': passwordHash,
-      'avatar': avatarUrl,
+      'avatarUrl': avatarUrl,
+      'firebaseUid': firebaseUid,
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
-  factory UserModel.fromMap(Map<String, dynamic> m) {
+  factory UserModel.fromFirestoreMap(Map<String, dynamic> map) {
     return UserModel(
-      id: m['id'] as int?,
-      name: m['name'] ?? '',
-      email: m['email'] ?? '',
-      passwordHash: m['password'] ?? '',
-      avatarUrl: m['avatar'],
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      avatarUrl: map['avatarUrl'],
+      firebaseUid: map['firebaseUid'] ?? '',
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : null,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'])
+          : null,
+    );
+  }
+
+  // Factory for Firebase User
+  factory UserModel.fromFirebase({
+    required String firebaseUid,
+    required String name,
+    required String email,
+    String? avatarUrl,
+    DateTime? createdAt,
+  }) {
+    return UserModel(
+      name: name,
+      email: email,
+      avatarUrl: avatarUrl,
+      firebaseUid: firebaseUid,
+      createdAt: createdAt ?? DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  // Copy with method for updates
+  UserModel copyWith({
+    String? name,
+    String? email,
+    String? avatarUrl,
+    String? firebaseUid,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return UserModel(
+      name: name ?? this.name,
+      email: email ?? this.email,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      firebaseUid: firebaseUid ?? this.firebaseUid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
