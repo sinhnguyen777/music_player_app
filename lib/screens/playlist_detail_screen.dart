@@ -421,20 +421,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         print('Track $i: ${_tracks[i].title} - URL: ${_tracks[i].url}');
       }
 
-      // Ensure tracks have playable URLs
-      final playableTracks = _tracks.map((track) {
-        if (track.url == null || track.url!.isEmpty) {
-          // Provide fallback URL for tracks without URLs
-          return track.copyWith(
-            url:
-                'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-          );
-        }
-        return track;
-      }).toList();
-
       final playerProvider = context.read<PlayerProvider>();
-      playerProvider.playTrack(playableTracks.first, queue: playableTracks);
+      playerProvider.playTrack(_tracks.first, queue: _tracks);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Bắt đầu phát playlist')));
@@ -452,19 +440,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     if (_tracks.isNotEmpty) {
       print('DEBUG: Shuffle play with ${_tracks.length} tracks');
 
-      // Ensure tracks have playable URLs
-      final playableTracks = _tracks.map((track) {
-        if (track.url == null || track.url!.isEmpty) {
-          // Provide fallback URL for tracks without URLs
-          return track.copyWith(
-            url:
-                'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-          );
-        }
-        return track;
-      }).toList();
-
-      final shuffledTracks = List<Track>.from(playableTracks);
+      final shuffledTracks = List<Track>.from(_tracks);
       shuffledTracks.shuffle();
       final playerProvider = context.read<PlayerProvider>();
       playerProvider.playTrack(shuffledTracks.first, queue: shuffledTracks);
@@ -550,23 +526,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     final track = _tracks[index];
     final playerProvider = context.read<PlayerProvider>();
 
-    // Ensure tracks have playable URLs
-    final playableTracks = _tracks.map((t) {
-      if (t.url == null || t.url!.isEmpty) {
-        return t.copyWith(
-          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-        );
-      }
-      return t;
-    }).toList();
-
     // Create queue starting from selected track
-    final queueFromIndex =
-        playableTracks.sublist(index) + playableTracks.sublist(0, index);
+    final queueFromIndex = _tracks.sublist(index) + _tracks.sublist(0, index);
 
-    // Get the track with URL
-    final playableTrack = playableTracks[index];
-    playerProvider.playTrack(playableTrack, queue: queueFromIndex);
+    playerProvider.playTrack(track, queue: queueFromIndex);
 
     ScaffoldMessenger.of(
       context,

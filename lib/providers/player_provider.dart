@@ -58,14 +58,28 @@ class PlayerProvider with ChangeNotifier {
     }
 
     print('DEBUG PlayerProvider: Starting track "${t.title}"');
+    print('DEBUG PlayerProvider: Track source: ${t.source}');
+    print('DEBUG PlayerProvider: Track has raw data: ${t.raw != null}');
 
-    // Priority: use track.url if available, otherwise try SoundCloud service
-    String? streamUrl = t.url;
+    String? streamUrl;
 
+    // For SoundCloud tracks, always get fresh stream URL
+    if (t.source == 'soundcloud' || t.raw != null) {
+      print('DEBUG PlayerProvider: Getting stream URL from SoundCloud API');
+      streamUrl = await _sc.getTrackStreamUrlFromTrack(t);
+      print('DEBUG PlayerProvider: SoundCloud stream URL: $streamUrl');
+    }
+
+    // Fallback to direct URL if available
     if (streamUrl == null || streamUrl.isEmpty) {
-      print('DEBUG PlayerProvider: No direct URL, trying SoundCloud service');
-      streamUrl =
-          await _sc.getTrackStreamUrlFromTrack(t) ?? t.raw?['stream_url'];
+      streamUrl = t.url;
+      print('DEBUG PlayerProvider: Using direct URL: $streamUrl');
+    }
+
+    // Final fallback from raw data
+    if (streamUrl == null || streamUrl.isEmpty) {
+      streamUrl = t.raw?['stream_url'];
+      print('DEBUG PlayerProvider: Using raw stream URL: $streamUrl');
     }
 
     if (streamUrl == null || streamUrl.isEmpty) {

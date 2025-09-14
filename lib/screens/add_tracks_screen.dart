@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/track.dart';
 import '../services/firebase_playlist_service.dart';
+import '../services/soundcloud_service.dart';
 
 class AddTracksScreen extends StatefulWidget {
   final String playlistId;
@@ -15,6 +16,7 @@ class AddTracksScreen extends StatefulWidget {
 
 class _AddTracksScreenState extends State<AddTracksScreen> {
   final FirebasePlaylistService _playlistService = FirebasePlaylistService();
+  final SoundCloudService _soundCloudService = SoundCloudService();
   final TextEditingController _searchController = TextEditingController();
   List<Track> _searchResults = [];
   List<Track> _selectedTracks = [];
@@ -26,6 +28,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
   void initState() {
     super.initState();
     _loadExistingTracks();
+    _loadTrendingTracks(); // Load trending tracks initially
   }
 
   @override
@@ -61,6 +64,28 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
         .length;
   }
 
+  Future<void> _loadTrendingTracks() async {
+    if (_searchController.text.isNotEmpty)
+      return; // Don't load if user is searching
+
+    try {
+      setState(() {
+        _isSearching = true;
+      });
+
+      final trendingTracks = await _soundCloudService.getCharts(limit: 10);
+      setState(() {
+        _searchResults = trendingTracks;
+        _isSearching = false;
+      });
+    } catch (e) {
+      print('Error loading trending tracks: $e');
+      setState(() {
+        _isSearching = false;
+      });
+    }
+  }
+
   Future<void> _searchTracks() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
@@ -69,44 +94,55 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
       _isSearching = true;
     });
 
-    // For now, create some sample tracks
-    // TODO: Integrate with SoundCloud API or other music services
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Search from SoundCloud API
+      final tracks = await _soundCloudService.searchTracks(query, limit: 10);
 
-    final sampleTracks = [
-      Track(
-        id: 'sample1_$query',
-        title: '$query Song 1',
-        artist: 'Artist 1',
-        artworkUrl: 'https://picsum.photos/200?random=1',
-        duration: 180,
-        source: 'sample',
-        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      ),
-      Track(
-        id: 'sample2_$query',
-        title: '$query Song 2',
-        artist: 'Artist 2',
-        artworkUrl: 'https://picsum.photos/200?random=2',
-        duration: 210,
-        source: 'sample',
-        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      ),
-      Track(
-        id: 'sample3_$query',
-        title: '$query Song 3',
-        artist: 'Artist 3',
-        artworkUrl: 'https://picsum.photos/200?random=3',
-        duration: 195,
-        source: 'sample',
-        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      ),
-    ];
+      print('=====> tracks: $tracks');
 
-    setState(() {
-      _searchResults = sampleTracks;
-      _isSearching = false;
-    });
+      setState(() {
+        _searchResults = tracks;
+        _isSearching = false;
+      });
+    } catch (e) {
+      print('Error searching tracks: $e');
+
+      // Fallback to sample tracks if SoundCloud fails
+      final sampleTracks = [
+        Track(
+          id: 'sample1_$query',
+          title: '$query Song 1',
+          artist: 'Artist 1',
+          artworkUrl: 'https://picsum.photos/200?random=1',
+          duration: 180,
+          source: 'sample',
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+        ),
+        Track(
+          id: 'sample2_$query',
+          title: '$query Song 2',
+          artist: 'Artist 2',
+          artworkUrl: 'https://picsum.photos/200?random=2',
+          duration: 210,
+          source: 'sample',
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+        ),
+        Track(
+          id: 'sample3_$query',
+          title: '$query Song 3',
+          artist: 'Artist 3',
+          artworkUrl: 'https://picsum.photos/200?random=3',
+          duration: 195,
+          source: 'sample',
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+        ),
+      ];
+
+      setState(() {
+        _searchResults = sampleTracks;
+        _isSearching = false;
+      });
+    }
   }
 
   void _toggleTrackSelection(Track track) {
@@ -223,6 +259,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                                 setState(() {
                                   _searchResults.clear();
                                 });
+                                _loadTrendingTracks(); // Reload trending when cleared
                               },
                             )
                           : null,
@@ -262,11 +299,18 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search, size: 64, color: Colors.grey),
+                        Icon(Icons.library_music, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          'Tìm kiếm bài hát để thêm vào playlist',
+                          'Bạn đang xem các bài hát trending từ SoundCloud',
                           style: TextStyle(fontSize: 16, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Sử dụng thanh tìm kiếm để tìm bài hát khác',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
