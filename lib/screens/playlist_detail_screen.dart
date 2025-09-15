@@ -32,6 +32,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   }
 
   Future<void> _loadTracks() async {
+    if (!mounted) return;
+
     setState(() {
       _loadingTracks = true;
     });
@@ -40,12 +42,16 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       final tracks = await _playlistService.getPlaylistTracks(
         widget.playlistId,
       );
+      if (!mounted) return;
+
       setState(() {
         _tracks = tracks;
         _loadingTracks = false;
       });
     } catch (e) {
       print('Error loading tracks: $e');
+      if (!mounted) return;
+
       setState(() {
         _loadingTracks = false;
       });
@@ -537,6 +543,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   }
 
   void _removeTrackFromPlaylist(Track track, int index) {
+    print('DEBUG: Removing track - ID: ${track.id}, Title: ${track.title}');
+    print('DEBUG: Track ID type: ${track.id.runtimeType}');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -551,10 +559,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             onPressed: () async {
               Navigator.pop(context);
               try {
-                await _playlistService.removeTrackFromPlaylist(
-                  widget.playlistId,
-                  track.id,
+                print(
+                  'DEBUG: Calling removeTrackFromPlaylistByIndex with index: $index',
                 );
+                await _playlistService.removeTrackFromPlaylistByIndex(
+                  widget.playlistId,
+                  index,
+                );
+                print('DEBUG: Successfully removed track, reloading tracks...');
                 await _loadTracks(); // Reload tracks
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -564,6 +576,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   );
                 }
               } catch (e) {
+                print('DEBUG: Error removing track: $e');
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
