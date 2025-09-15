@@ -26,7 +26,11 @@ void main() async {
   runApp(const MyApp());
 }
 
-const Color primaryGreen = Color(0xFF1B5E20);
+const Color primaryColor = Color(0xFF1A1A1A);
+const Color accentColor = Color(0xFF6C5CE7);
+const Color cardColor = Color(0xFF2A2A2A);
+const Color textPrimary = Color(0xFFFFFFFF);
+const Color textSecondary = Color(0xFFB0B0B0);
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -58,18 +62,48 @@ class _MyAppState extends State<MyApp> {
         title: 'SoundCloud Music',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primaryColor: primaryGreen,
-          colorScheme: ColorScheme.fromSeed(seedColor: primaryGreen),
+          primaryColor: primaryColor,
+          scaffoldBackgroundColor: primaryColor,
+          colorScheme: ColorScheme.dark(
+            primary: accentColor,
+            secondary: accentColor,
+            surface: cardColor,
+            background: primaryColor,
+            onPrimary: textPrimary,
+            onSecondary: textPrimary,
+            onSurface: textPrimary,
+            onBackground: textPrimary,
+          ),
           useMaterial3: true,
-          brightness: Brightness.light,
-          appBarTheme: const AppBarTheme(backgroundColor: primaryGreen),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            backgroundColor: primaryGreen,
+          brightness: Brightness.dark,
+          appBarTheme: AppBarTheme(
+            backgroundColor: primaryColor,
+            elevation: 0,
+            titleTextStyle: TextStyle(
+              color: textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            iconTheme: IconThemeData(color: textPrimary),
+          ),
+          cardTheme: CardThemeData(
+            color: cardColor,
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          bottomNavigationBarTheme: BottomNavigationBarThemeData(
+            backgroundColor: cardColor,
+            selectedItemColor: accentColor,
+            unselectedItemColor: textSecondary,
+            type: BottomNavigationBarType.fixed,
           ),
         ),
         darkTheme: ThemeData.dark().copyWith(
-          primaryColor: primaryGreen,
-          appBarTheme: const AppBarTheme(backgroundColor: primaryGreen),
+          primaryColor: primaryColor,
+          scaffoldBackgroundColor: primaryColor,
+          appBarTheme: AppBarTheme(backgroundColor: primaryColor, elevation: 0),
         ),
         themeMode: _themeMode,
         home: const MainNav(),
@@ -109,7 +143,7 @@ class _MainNavState extends State<MainNav> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
-        selectedItemColor: primaryGreen,
+        selectedItemColor: accentColor,
         type: BottomNavigationBarType.fixed,
         onTap: (i) => setState(() => _index = i),
         items: const [
