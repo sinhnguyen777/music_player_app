@@ -180,9 +180,6 @@ class FirebasePlaylistService {
   ) async {
     try {
       final doc = _firestore.collection(_collection).doc(playlistId);
-      final trackDoc = _firestore
-          .collection('tracks')
-          .doc(); // Generate new track document ID
       final now = DateTime.now();
 
       await _firestore.runTransaction((transaction) async {
@@ -200,6 +197,9 @@ class FirebasePlaylistService {
         final trackIds = List<String>.from(playlist.trackIds);
         final trackCount = trackIds.length;
 
+        // Use track's actual ID as document ID for easier lookup
+        final trackDoc = _firestore.collection('tracks').doc(track.id);
+
         // Create track with metadata
         final trackWithMetadata = track.copyWith(
           addedAt: now,
@@ -211,8 +211,8 @@ class FirebasePlaylistService {
         transaction.set(trackDoc, trackWithMetadata.toFirestore());
 
         // Add track reference to playlist and update stats
-        if (!trackIds.contains(trackDoc.id)) {
-          trackIds.add(trackDoc.id);
+        if (!trackIds.contains(track.id)) {
+          trackIds.add(track.id);
 
           // Update playlist stats
           final currentStats = playlist.stats;
@@ -255,6 +255,7 @@ class FirebasePlaylistService {
     String trackId,
   ) async {
     try {
+      print('DEBUG: Removing track $trackId from playlist $playlistId');
       final playlistRef = _firestore.collection(_collection).doc(playlistId);
       final trackRef = _firestore.collection('tracks').doc(trackId);
 
@@ -270,10 +271,38 @@ class FirebasePlaylistService {
         );
         final trackIds = List<String>.from(playlist.trackIds);
 
+        print('DEBUG: Current trackIds in playlist: $trackIds');
+        print('DEBUG: Trying to remove trackId: $trackId');
+        print(
+          'DEBUG: trackIds contains trackId: ${trackIds.contains(trackId)}',
+        );
+
         // Get track data for stats update
         final trackDoc = await transaction.get(trackRef);
         if (!trackDoc.exists) {
-          throw Exception('Track not found');
+          print(
+            'DEBUG: Track document not found, continuing with removal anyway',
+          );
+          // Continue with removal even if track doc doesn't exist
+          if (trackIds.remove(trackId)) {
+            final now = DateTime.now();
+            transaction.update(playlistRef, {
+              'trackIds': trackIds,
+              'updatedAt': now.toIso8601String(),
+              'trackCount': trackIds.length,
+            });
+            print('DEBUG: Track removed successfully (no stats update)');
+          } else {
+            print('DEBUG: Track not found in playlist trackIds');
+            print('DEBUG: Looking for exact matches:');
+            for (int i = 0; i < trackIds.length; i++) {
+              print(
+                '  trackIds[$i] = "${trackIds[i]}" (type: ${trackIds[i].runtimeType})',
+              );
+              print('  equals trackId? ${trackIds[i] == trackId}');
+            }
+          }
+          return;
         }
 
         final track = Track.fromFirestore(trackDoc.data()!);
@@ -301,16 +330,9 @@ class FirebasePlaylistService {
             'stats': updatedStats.toFirestore(),
           });
 
-          // Check if track is used in other playlists
-          final trackUsage = await _firestore
-              .collection(_collection)
-              .where('trackIds', arrayContains: trackId)
-              .get();
-
-          if (trackUsage.docs.length <= 1) {
-            // Only used in this playlist, safe to delete
-            transaction.delete(trackRef);
-          }
+          print('DEBUG: Track removed successfully with stats update');
+        } else {
+          print('DEBUG: Track not found in playlist trackIds');
         }
       });
 
@@ -444,7 +466,7 @@ class FirebasePlaylistService {
 
         // Add each track
         for (var track in tracks) {
-          final trackDoc = _firestore.collection('tracks').doc();
+          final trackDoc = _firestore.collection('tracks').doc(track.id);
           trackCount++;
 
           // Create track with metadata
@@ -456,7 +478,7 @@ class FirebasePlaylistService {
 
           // Save track data
           transaction.set(trackDoc, trackWithMetadata.toFirestore());
-          trackIds.add(trackDoc.id);
+          trackIds.add(track.id);
         }
 
         // Update playlist
@@ -609,5 +631,52 @@ class FirebasePlaylistService {
       }
       return null;
     });
+  }
+
+  // Alternative method to remove track by finding it in the tracks list
+  Future<bool> removeTrackFromPlaylistByIndex(
+    String playlistId,
+    int trackIndex,
+  ) async {
+    try {
+      print(
+        'DEBUG: Removing track at index $trackIndex from playlist $playlistId',
+      );
+
+      final playlistRef = _firestore.collection(_collection).doc(playlistId);
+
+      await _firestore.runTransaction((transaction) async {
+        final playlistSnapshot = await transaction.get(playlistRef);
+        if (!playlistSnapshot.exists) {
+          throw Exception('Playlist not found');
+        }
+
+        final playlist = Playlist.fromFirestoreMap(
+          playlistSnapshot.data()!,
+          playlistSnapshot.id,
+        );
+        final trackIds = List<String>.from(playlist.trackIds);
+
+        if (trackIndex >= 0 && trackIndex < trackIds.length) {
+          final removedTrackId = trackIds.removeAt(trackIndex);
+
+          final now = DateTime.now();
+          transaction.update(playlistRef, {
+            'trackIds': trackIds,
+            'updatedAt': now.toIso8601String(),
+            'trackCount': trackIds.length,
+          });
+
+          print('DEBUG: Removed track $removedTrackId at index $trackIndex');
+        } else {
+          throw Exception('Invalid track index');
+        }
+      });
+
+      return true;
+    } catch (e) {
+      print('Error removing track from playlist by index: $e');
+      return false;
+    }
   }
 }
