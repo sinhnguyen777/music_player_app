@@ -11,7 +11,6 @@ import 'providers/playlist_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/playlists_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/search_screen.dart';
 import 'widgets/mini_player.dart';
 
 void main() async {
@@ -120,12 +119,7 @@ class MainNav extends StatefulWidget {
 
 class _MainNavState extends State<MainNav> {
   int _index = 0;
-  final _pages = const [
-    HomeScreen(),
-    PlaylistsScreen(),
-    SearchScreen(),
-    ProfileScreen(),
-  ];
+  final _pages = const [HomeScreen(), PlaylistsScreen(), ProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +146,6 @@ class _MainNavState extends State<MainNav> {
             icon: Icon(Icons.queue_music),
             label: 'Playlists',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
