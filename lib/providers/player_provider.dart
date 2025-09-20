@@ -5,11 +5,18 @@ import '../models/track.dart';
 import '../services/audio_service.dart';
 import '../services/soundcloud_service.dart';
 
+enum RepeatMode {
+  off, // No repeat
+  all, // Repeat queue
+  one, // Repeat current track
+}
+
 class PlayerProvider with ChangeNotifier {
   final SoundCloudService _sc = SoundCloudService();
   final AudioService _audio = AudioService();
   List<Track> _queue = [];
   int _index = -1;
+  RepeatMode _repeatMode = RepeatMode.off;
 
   PlayerProvider();
 
@@ -19,6 +26,22 @@ class PlayerProvider with ChangeNotifier {
   Stream<PlayerState> get playerStateStream => _audio.player.playerStateStream;
   Stream<Duration> get positionStream => _audio.player.positionStream;
   Stream<Duration?> get durationStream => _audio.player.durationStream;
+  RepeatMode get repeatMode => _repeatMode;
+
+  void toggleRepeatMode() {
+    switch (_repeatMode) {
+      case RepeatMode.off:
+        _repeatMode = RepeatMode.all;
+        break;
+      case RepeatMode.all:
+        _repeatMode = RepeatMode.one;
+        break;
+      case RepeatMode.one:
+        _repeatMode = RepeatMode.off;
+        break;
+    }
+    notifyListeners();
+  }
 
   Future<void> init() async {
     await _audio.init();
@@ -102,8 +125,28 @@ class PlayerProvider with ChangeNotifier {
 
   Future<void> next() async {
     if (_queue.isEmpty) return;
-    _index = (_index + 1) % _queue.length;
-    await _startCurrent();
+
+    switch (_repeatMode) {
+      case RepeatMode.one:
+        // Repeat current track
+        await _startCurrent();
+        break;
+      case RepeatMode.all:
+        // Move to next track, loop back to start if at end
+        _index = (_index + 1) % _queue.length;
+        await _startCurrent();
+        break;
+      case RepeatMode.off:
+        // Move to next track, stop if at end
+        if (_index < _queue.length - 1) {
+          _index++;
+          await _startCurrent();
+        } else {
+          // Reached end of queue, stop playing
+          _audio.stop();
+        }
+        break;
+    }
   }
 
   Future<void> previous() async {
@@ -114,4 +157,9 @@ class PlayerProvider with ChangeNotifier {
   }
 
   List<Track> get queue => _queue;
+
+  void stop() {
+    _audio.stop();
+    notifyListeners();
+  }
 }
