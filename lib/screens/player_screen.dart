@@ -289,9 +289,32 @@ class PlayerScreen extends StatelessWidget {
                       onPressed: () => p.next(),
                     ),
                     IconButton(
-                      icon: Icon(Icons.repeat, color: textSecondary),
+                      icon: Consumer<PlayerProvider>(
+                        builder: (context, playerProvider, child) {
+                          final repeatMode = playerProvider.repeatMode;
+                          Color iconColor;
+                          IconData iconData;
+
+                          switch (repeatMode) {
+                            case RepeatMode.off:
+                              iconColor = textSecondary;
+                              iconData = Icons.repeat;
+                              break;
+                            case RepeatMode.all:
+                              iconColor = accentColor;
+                              iconData = Icons.repeat;
+                              break;
+                            case RepeatMode.one:
+                              iconColor = accentColor;
+                              iconData = Icons.repeat_one;
+                              break;
+                          }
+
+                          return Icon(iconData, color: iconColor);
+                        },
+                      ),
                       iconSize: 28,
-                      onPressed: () {},
+                      onPressed: () => p.toggleRepeatMode(),
                     ),
                   ],
                 ),
