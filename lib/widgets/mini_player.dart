@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/player_provider.dart';
 import '../screens/player_screen.dart';
+import '../screens/queue_screen.dart';
 
 const Color accentColor = Color(0xFF6C5CE7);
 const Color primaryColor = Color(0xFF1A1A1A);
@@ -96,6 +97,53 @@ class MiniPlayer extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.skip_next),
                   onPressed: () => p.next(),
+                ),
+                // Queue button
+                Consumer<PlayerProvider>(
+                  builder: (context, playerProvider, child) {
+                    final queueLength = playerProvider.queue.length;
+                    if (queueLength <= 1) return const SizedBox.shrink();
+
+                    return IconButton(
+                      icon: Stack(
+                        children: [
+                          const Icon(Icons.queue_music, size: 20),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 12,
+                                minHeight: 12,
+                              ),
+                              child: Text(
+                                '$queueLength',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const QueueScreen(),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
                 const SizedBox(width: 8),
               ],
