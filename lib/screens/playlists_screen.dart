@@ -289,13 +289,15 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _createPlaylist,
-        tooltip: 'Tạo playlist mới',
-        child: const Icon(Icons.add),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80), // Avoid mini player
+        child: FloatingActionButton(
+          onPressed: _createPlaylist,
+          tooltip: 'Tạo playlist mới',
+          child: const Icon(Icons.add),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: const SizedBox(height: 80),
     );
   }
 
@@ -387,21 +389,37 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
   }
 
   void _editPlaylist(String playlistId) async {
-    final playlist = context.read<PlaylistProvider>().playlists.firstWhere(
-      (p) => p.id == playlistId,
-    );
+    try {
+      final playlists = context.read<PlaylistProvider>().playlists;
+      final playlist = playlists.firstWhere(
+        (p) => p.id == playlistId,
+        orElse: () => throw Exception('Playlist not found'),
+      );
 
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CreatePlaylistScreen(playlist: playlist),
-      ),
-    );
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreatePlaylistScreen(playlist: playlist),
+        ),
+      );
 
-    if (result == true) {
-      // Playlist được cập nhật thành công
+      if (result == true) {
+        // Playlist được cập nhật thành công
+        if (mounted) {
+          context.read<PlaylistProvider>().loadUserPlaylists();
+        }
+      }
+    } catch (e) {
+      print('Error editing playlist: $e');
       if (mounted) {
-        context.read<PlaylistProvider>().loadUserPlaylists();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Không thể mở playlist để chỉnh sửa: ${e.toString()}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

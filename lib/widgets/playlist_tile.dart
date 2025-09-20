@@ -28,11 +28,17 @@ class PlaylistTile extends StatelessWidget {
   }
 
   Widget _buildGridViewTile(BuildContext context) {
+    const double borderRadius = 12.0;
+
     return Card(
       elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -40,24 +46,14 @@ class PlaylistTile extends StatelessWidget {
               flex: 3,
               child: Container(
                 width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(8),
-                  ),
-                  color: Colors.grey[300],
-                ),
+                decoration: const BoxDecoration(color: Colors.grey),
                 child: playlist.imageUrl != null
-                    ? ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(8),
-                        ),
-                        child: Image.network(
-                          playlist.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildPlaceholderImage();
-                          },
-                        ),
+                    ? Image.network(
+                        playlist.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildPlaceholderImage();
+                        },
                       )
                     : _buildPlaceholderImage(),
               ),

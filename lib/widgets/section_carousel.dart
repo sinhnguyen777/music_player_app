@@ -2,10 +2,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../main.dart';
 import '../models/track.dart';
 import '../providers/player_provider.dart';
 import '../screens/player_screen.dart';
-import '../main.dart';
 
 class SectionCarousel extends StatelessWidget {
   final String title;
