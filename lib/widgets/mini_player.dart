@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:provider/provider.dart';
+
 import '../providers/player_provider.dart';
 import '../screens/player_screen.dart';
+
+const Color accentColor = Color(0xFF6C5CE7);
+const Color primaryColor = Color(0xFF1A1A1A);
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -20,7 +24,14 @@ class MiniPlayer extends StatelessWidget {
           child: Container(
             height: 72,
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              // color: Theme.of(context).cardColor,
+              gradient: LinearGradient(
+                colors: [
+                  accentColor.withOpacity(1),
+                  accentColor.withOpacity(0.9),
+                  primaryColor,
+                ],
+              ),
               border: Border(top: BorderSide(color: Colors.grey.shade300)),
             ),
             child: Row(

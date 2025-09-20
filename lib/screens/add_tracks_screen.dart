@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/track.dart';
+import '../providers/player_provider.dart';
 import '../services/firebase_playlist_service.dart';
 import '../services/soundcloud_service.dart';
 
@@ -421,13 +423,50 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                               ),
                           ],
                         ),
-                        trailing: Text(
-                          _formatDuration(track.duration),
-                          style: TextStyle(
-                            color: isAlreadyInPlaylist
-                                ? Colors.grey[400]
-                                : Colors.grey[600],
-                          ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatDuration(track.duration),
+                              style: TextStyle(
+                                color: isAlreadyInPlaylist
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Consumer<PlayerProvider>(
+                              builder: (context, playerProvider, child) {
+                                final isCurrentTrack =
+                                    playerProvider.current?.id == track.id;
+                                final isPlaying =
+                                    playerProvider.audioPlayer.playing &&
+                                    isCurrentTrack;
+
+                                return IconButton(
+                                  icon: Icon(
+                                    isPlaying
+                                        ? Icons.pause_circle
+                                        : Icons.play_circle,
+                                    color: isCurrentTrack
+                                        ? Theme.of(context).primaryColorLight
+                                        : Colors.grey[600],
+                                    size: 28,
+                                  ),
+                                  onPressed: () {
+                                    if (isCurrentTrack && isPlaying) {
+                                      playerProvider.togglePlayPause();
+                                    } else {
+                                      playerProvider.playTrack(
+                                        track,
+                                        queue: [track],
+                                      );
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+                          ],
                         ),
                         onTap: () => _toggleTrackSelection(track),
                         tileColor: isSelected

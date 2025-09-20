@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:music_player_app/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
+import '../models/playlist.dart';
 import '../providers/playlist_provider.dart';
 import '../widgets/playlist_tile.dart';
 import 'create_playlist_screen.dart';
@@ -17,10 +20,15 @@ class PlaylistsScreen extends StatefulWidget {
 
 class _PlaylistsScreenState extends State<PlaylistsScreen> {
   bool _isGridView = true;
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+  List<Playlist> _filteredPlaylists = [];
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = context.read<AuthProvider>();
       final playlistProvider = context.read<PlaylistProvider>();
@@ -30,6 +38,50 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       print('🔄 Firebase UID: ${authProvider.user?.firebaseUid}');
 
       playlistProvider.loadUserPlaylists();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(_searchController.text.trim());
+    });
+  }
+
+  void _performSearch(String query) {
+    final playlistProvider = context.read<PlaylistProvider>();
+    final allPlaylists = playlistProvider.playlists;
+
+    if (query.isEmpty) {
+      setState(() {
+        _isSearching = false;
+        _filteredPlaylists = [];
+      });
+    } else {
+      final filtered = allPlaylists.where((playlist) {
+        return playlist.name.toLowerCase().contains(query.toLowerCase()) ||
+            playlist.description.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+
+      setState(() {
+        _isSearching = true;
+        _filteredPlaylists = filtered;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _isSearching = false;
+      _filteredPlaylists = [];
     });
   }
 
@@ -59,99 +111,191 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
               });
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              _showSearchDialog();
-            },
-          ),
         ],
       ),
-      body: Consumer<PlaylistProvider>(
-        builder: (context, playlistProvider, child) {
-          // Debug info
-          print(
-            '🔄 PlaylistsScreen rebuild - Loading: ${playlistProvider.isLoading}',
-          );
-          print('🔄 Playlists count: ${playlistProvider.playlists.length}');
-          print('🔄 Error: ${playlistProvider.errorMessage}');
-
-          if (playlistProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (playlistProvider.errorMessage != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Có lỗi xảy ra',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    playlistProvider.errorMessage!,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      playlistProvider.loadUserPlaylists();
-                    },
-                    child: const Text('Thử lại'),
+      body: Column(
+        children: [
+          // Search Bar
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-            );
-          }
-
-          if (playlistProvider.playlists.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.queue_music, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Chưa có playlist nào',
-                    style: Theme.of(context).textTheme.headlineSmall,
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm playlist...',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: Colors.grey[600]),
+                          onPressed: _clearSearch,
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tạo playlist đầu tiên của bạn',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _createPlaylist,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Tạo playlist'),
-                  ),
-                ],
+                ),
+                onChanged: (value) {
+                  setState(() {}); // Trigger rebuild for suffixIcon
+                },
               ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              await playlistProvider.loadUserPlaylists();
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: _isGridView ? _buildGridView() : _buildListView(),
             ),
-          );
-        },
+          ),
+          // Content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                bottom: 80,
+              ), // Space for mini player
+              child: Consumer<PlaylistProvider>(
+                builder: (context, playlistProvider, child) {
+                  // Debug info
+                  print(
+                    '🔄 PlaylistsScreen rebuild - Loading: ${playlistProvider.isLoading}',
+                  );
+                  print(
+                    '🔄 Playlists count: ${playlistProvider.playlists.length}',
+                  );
+                  print('🔄 Error: ${playlistProvider.errorMessage}');
+
+                  if (playlistProvider.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (playlistProvider.errorMessage != null) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Có lỗi xảy ra',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            playlistProvider.errorMessage!,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              playlistProvider.loadUserPlaylists();
+                            },
+                            child: const Text('Thử lại'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  // Get playlists to display (filtered or all)
+                  final playlistsToShow = _isSearching
+                      ? _filteredPlaylists
+                      : playlistProvider.playlists;
+
+                  if (playlistsToShow.isEmpty && _isSearching) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Không tìm thấy playlist',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Thử từ khóa khác',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (playlistsToShow.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.queue_music,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Chưa có playlist nào',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Tạo playlist đầu tiên của bạn',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _createPlaylist,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Tạo playlist'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      await playlistProvider.loadUserPlaylists();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _isGridView
+                          ? _buildGridView(playlistsToShow)
+                          : _buildListView(playlistsToShow),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createPlaylist,
         tooltip: 'Tạo playlist mới',
         child: const Icon(Icons.add),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: const SizedBox(height: 80),
     );
   }
 
@@ -190,47 +334,39 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
     );
   }
 
-  Widget _buildGridView() {
-    return Consumer<PlaylistProvider>(
-      builder: (context, playlistProvider, child) {
-        return GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.8,
-          ),
-          itemCount: playlistProvider.playlists.length,
-          itemBuilder: (context, index) {
-            final playlist = playlistProvider.playlists[index];
-            return PlaylistTile(
-              playlist: playlist,
-              isGridView: true,
-              onTap: () => _openPlaylist(playlist.id),
-              onEdit: () => _editPlaylist(playlist.id),
-              onDelete: () => _deletePlaylist(playlist.id),
-            );
-          },
+  Widget _buildGridView(List<Playlist> playlists) {
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.8,
+      ),
+      itemCount: playlists.length,
+      itemBuilder: (context, index) {
+        final playlist = playlists[index];
+        return PlaylistTile(
+          playlist: playlist,
+          isGridView: true,
+          onTap: () => _openPlaylist(playlist.id),
+          onEdit: () => _editPlaylist(playlist.id),
+          onDelete: () => _deletePlaylist(playlist.id),
         );
       },
     );
   }
 
-  Widget _buildListView() {
-    return Consumer<PlaylistProvider>(
-      builder: (context, playlistProvider, child) {
-        return ListView.builder(
-          itemCount: playlistProvider.playlists.length,
-          itemBuilder: (context, index) {
-            final playlist = playlistProvider.playlists[index];
-            return PlaylistTile(
-              playlist: playlist,
-              isGridView: false,
-              onTap: () => _openPlaylist(playlist.id),
-              onEdit: () => _editPlaylist(playlist.id),
-              onDelete: () => _deletePlaylist(playlist.id),
-            );
-          },
+  Widget _buildListView(List<Playlist> playlists) {
+    return ListView.builder(
+      itemCount: playlists.length,
+      itemBuilder: (context, index) {
+        final playlist = playlists[index];
+        return PlaylistTile(
+          playlist: playlist,
+          isGridView: false,
+          onTap: () => _openPlaylist(playlist.id),
+          onEdit: () => _editPlaylist(playlist.id),
+          onDelete: () => _deletePlaylist(playlist.id),
         );
       },
     );
@@ -296,38 +432,6 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
               await context.read<PlaylistProvider>().deletePlaylist(playlistId);
             },
             child: const Text('Xóa'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tìm kiếm playlist'),
-        content: TextField(
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Nhập tên playlist...',
-            border: OutlineInputBorder(),
-          ),
-          onSubmitted: (query) {
-            Navigator.pop(context);
-            if (query.isNotEmpty) {
-              context.read<PlaylistProvider>().searchPlaylists(query);
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Reset search to show all playlists
-              context.read<PlaylistProvider>().loadUserPlaylists();
-            },
-            child: const Text('Đóng'),
           ),
         ],
       ),
