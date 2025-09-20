@@ -255,6 +255,8 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
       final playlistProvider = context.read<PlaylistProvider>();
 
       if (isEditing) {
+        print('🔄 Updating playlist: ${widget.playlist!.id}');
+
         // Update existing playlist
         final updatedPlaylist = Playlist(
           id: widget.playlist!.id,
@@ -268,20 +270,42 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
           isPublic: _isPublic,
         );
 
-        await playlistProvider.updatePlaylist(updatedPlaylist);
+        final success = await playlistProvider.updatePlaylist(updatedPlaylist);
+        print('✅ Update result: $success');
+
+        if (!success) {
+          throw Exception('Failed to update playlist');
+        }
       } else {
+        print('🔄 Creating new playlist');
+
         // Create new playlist
-        await playlistProvider.createPlaylist(
+        final success = await playlistProvider.createPlaylist(
           name: _nameController.text.trim(),
           description: _descriptionController.text.trim(),
           isPublic: _isPublic,
         );
+
+        if (!success) {
+          throw Exception('Failed to create playlist');
+        }
       }
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isEditing
+                  ? 'Playlist đã được cập nhật!'
+                  : 'Playlist đã được tạo!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.pop(context, true); // Return true to indicate success
       }
     } catch (e) {
+      print('❌ Error saving playlist: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
