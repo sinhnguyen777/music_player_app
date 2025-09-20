@@ -679,4 +679,56 @@ class FirebasePlaylistService {
       return false;
     }
   }
+
+  // Sync playlist trackCount with actual available tracks
+  Future<bool> syncPlaylistTrackCount(String playlistId) async {
+    try {
+      final playlistRef = _firestore.collection(_collection).doc(playlistId);
+      final playlistSnapshot = await playlistRef.get();
+
+      if (!playlistSnapshot.exists) {
+        print('Playlist not found for sync');
+        return false;
+      }
+
+      final playlist = Playlist.fromFirestoreMap(
+        playlistSnapshot.data()!,
+        playlistSnapshot.id,
+      );
+
+      // Get actual existing tracks
+      final trackDocs = await Future.wait(
+        playlist.trackIds.map(
+          (id) => _firestore.collection('tracks').doc(id).get(),
+        ),
+      );
+
+      final existingTrackIds = trackDocs
+          .where((doc) => doc.exists && doc.data() != null)
+          .map((doc) => doc.id)
+          .toList();
+
+      final actualTrackCount = existingTrackIds.length;
+
+      // Update playlist if trackCount is different
+      if (playlist.trackCount != actualTrackCount) {
+        print(
+          'Syncing playlist $playlistId: ${playlist.trackCount} -> $actualTrackCount tracks',
+        );
+
+        await playlistRef.update({
+          'trackIds': existingTrackIds,
+          'trackCount': actualTrackCount,
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
+
+        return true;
+      }
+
+      return false; // No update needed
+    } catch (e) {
+      print('Error syncing playlist track count: $e');
+      return false;
+    }
+  }
 }

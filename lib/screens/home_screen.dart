@@ -168,65 +168,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                               ),
+
                               // Profile Avatar
-                              GestureDetector(
-                                onTap: () {
-                                  if (!auth.isAuthenticated) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text(
-                                          'Tap Profile tab to login',
-                                        ),
-                                        backgroundColor: accentColor,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    gradient: auth.isAuthenticated
-                                        ? LinearGradient(
-                                            colors: [
-                                              accentColor,
-                                              accentColor.withOpacity(0.7),
-                                            ],
-                                          )
-                                        : null,
-                                    color: auth.isAuthenticated
-                                        ? null
-                                        : cardColor.withOpacity(0.3),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: auth.isAuthenticated
-                                          ? Colors.white.withOpacity(0.3)
-                                          : textSecondary.withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Icon(
-                                    auth.isAuthenticated
-                                        ? Icons.person
-                                        : Icons.login,
-                                    color: textPrimary,
-                                    size: 24,
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                           const Spacer(),

@@ -48,6 +48,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         _tracks = tracks;
         _loadingTracks = false;
       });
+
+      // Sync trackCount if there's a mismatch
+      final playlist = context.read<PlaylistProvider>().currentPlaylist;
+      if (playlist != null && playlist.trackCount != tracks.length) {
+        print(
+          'Track count mismatch detected: ${playlist.trackCount} vs ${tracks.length}',
+        );
+        await _playlistService.syncPlaylistTrackCount(widget.playlistId);
+        // Reload playlist data to get updated trackCount
+        if (mounted) {
+          final playlistProvider = context.read<PlaylistProvider>();
+          // Refresh both current playlist and the entire playlist list
+          await playlistProvider.loadPlaylistById(widget.playlistId);
+          await playlistProvider.refreshPlaylists();
+        }
+      }
     } catch (e) {
       print('Error loading tracks: $e');
       if (!mounted) return;
@@ -474,6 +490,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     // If tracks were added, reload the playlist
     if (result == true) {
       await _loadTracks();
+      // Refresh playlist list to update track count
+      if (mounted) {
+        context.read<PlaylistProvider>().refreshPlaylists();
+      }
     }
   }
 
@@ -568,6 +588,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 );
                 print('DEBUG: Successfully removed track, reloading tracks...');
                 await _loadTracks(); // Reload tracks
+
+                // Refresh playlist list to update track count
+                if (mounted) {
+                  context.read<PlaylistProvider>().refreshPlaylists();
+                }
+
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
