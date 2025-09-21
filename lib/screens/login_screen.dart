@@ -53,11 +53,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         final errorMsg =
                             auth.errorMessage ??
                             'Email or password is incorrect';
-                        setState(() => _err = errorMsg);
 
                         // Show resend verification option if email not verified
                         if (errorMsg.contains('verify your email')) {
                           _showResendVerificationDialog();
+                        } else {
+                          // Only show error message for other errors (not email verification)
+                          setState(() => _err = errorMsg);
                         }
                       }
                     },
@@ -79,10 +81,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showResendVerificationDialog() {
+    // Clear any existing error message
+    setState(() => _err = null);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Email not verified'),
+        title: const Row(
+          children: [
+            Icon(Icons.email_outlined, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Email has not been verified'),
+          ],
+        ),
         content: const Text(
           'Your account has not been verified. Would you like to resend the verification email?',
         ),
@@ -91,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               await _resendVerification();
@@ -105,7 +116,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _resendVerification() async {
     if (_email.text.trim().isEmpty || _pass.text.isEmpty) {
-      setState(() => _err = 'Please enter email and password');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng nhập email và mật khẩu'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -123,15 +139,18 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Verification email has been resent. Please check your inbox.',
+            'Email xác thực đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.',
           ),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 5),
         ),
       );
     } else {
-      setState(
-        () => _err = auth.errorMessage ?? 'Could not send verification email',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Không thể gửi email xác thực'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
