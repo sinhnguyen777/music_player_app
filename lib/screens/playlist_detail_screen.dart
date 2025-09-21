@@ -211,7 +211,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${_tracks.length} bài hát',
+                            '${_tracks.length} tracks',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -225,7 +225,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            playlist.isPublic ? 'Công khai' : 'Riêng tư',
+                            playlist.isPublic ? 'Public' : 'Private',
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -242,7 +242,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             child: ElevatedButton.icon(
                               onPressed: _tracks.isNotEmpty ? _playAll : null,
                               icon: const Icon(Icons.play_arrow),
-                              label: const Text('Phát tất cả'),
+                              label: const Text('Play All'),
                               style: ElevatedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
@@ -257,7 +257,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                   ? _shufflePlay
                                   : null,
                               icon: const Icon(Icons.shuffle),
-                              label: const Text('Phát ngẫu nhiên'),
+                              label: const Text('Shuffle'),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
@@ -273,7 +273,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         child: OutlinedButton.icon(
                           onPressed: _addTracks,
                           icon: const Icon(Icons.add),
-                          label: const Text('Thêm bài hát'),
+                          label: const Text('Add Tracks'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
@@ -301,12 +301,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         Icon(Icons.music_note, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          'Chưa có bài hát nào',
+                          'No tracks yet',
                           style: TextStyle(fontSize: 18, color: Colors.grey),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Thêm bài hát đầu tiên vào playlist của bạn',
+                          'Add the first track to your playlist',
                           style: TextStyle(color: Colors.grey),
                           textAlign: TextAlign.center,
                         ),
@@ -381,7 +381,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                   children: [
                                     Icon(Icons.skip_next),
                                     SizedBox(width: 8),
-                                    Text('Phát tiếp theo'),
+                                    Text('Play Next'),
                                   ],
                                 ),
                               ),
@@ -391,7 +391,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                   children: [
                                     Icon(Icons.queue_music),
                                     SizedBox(width: 8),
-                                    Text('Thêm vào hàng đợi'),
+                                    Text('Add to Queue'),
                                   ],
                                 ),
                               ),
@@ -401,7 +401,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                   children: [
                                     Icon(Icons.remove, color: Colors.red),
                                     SizedBox(width: 8),
-                                    Text('Xóa khỏi playlist'),
+                                    Text('Remove from Playlist'),
                                   ],
                                 ),
                               ),
@@ -447,11 +447,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       playerProvider.playTrack(_tracks.first, queue: _tracks);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Bắt đầu phát playlist')));
+      ).showSnackBar(const SnackBar(content: Text('Started playing playlist')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Playlist trống, không thể phát nhạc'),
+          content: Text('Playlist is empty, cannot play music'),
           backgroundColor: Colors.red,
         ),
       );
@@ -468,11 +468,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       playerProvider.playTrack(shuffledTracks.first, queue: shuffledTracks);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Phát ngẫu nhiên playlist')));
+      ).showSnackBar(const SnackBar(content: Text('Shuffle playlist')));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Playlist trống, không thể phát nhạc'),
+          content: Text('Playlist is empty, cannot play music'),
           backgroundColor: Colors.red,
         ),
       );
@@ -519,9 +519,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           currentQueue.insert(currentIndex + 1, track);
           // Update the queue (this would require PlayerProvider modification)
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Đã thêm "${track.title}" vào phát tiếp theo'),
-            ),
+            SnackBar(content: Text('Added "${track.title}" to play next')),
           );
           return;
         }
@@ -532,7 +530,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     playerProvider.playTrack(track, queue: [track, ..._tracks]);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Đang phát "${track.title}"')));
+    ).showSnackBar(SnackBar(content: Text('Now playing "${track.title}"')));
   }
 
   void _addToQueue(Track track) {
@@ -543,9 +541,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     currentQueue.add(track);
     // Update the queue (this would require PlayerProvider modification)
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Đã thêm "${track.title}" vào hàng đợi')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Added "${track.title}" to queue')));
   }
 
   void _playTrackAtIndex(int index) {
@@ -559,7 +557,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text('Đang phát "${track.title}"')));
+    ).showSnackBar(SnackBar(content: Text('Now playing "${track.title}"')));
   }
 
   void _removeTrackFromPlaylist(Track track, int index) {
@@ -568,12 +566,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa bài hát'),
-        content: Text('Bạn có muốn xóa "${track.title}" khỏi playlist?'),
+        title: const Text('Remove Track'),
+        content: Text('Remove "${track.title}" from playlist?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
@@ -597,7 +595,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Đã xóa "${track.title}" khỏi playlist'),
+                      content: Text('Removed "${track.title}" from playlist'),
                     ),
                   );
                 }
@@ -606,14 +604,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Lỗi khi xóa bài hát: $e'),
+                      content: Text('Error removing track: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
                 }
               }
             },
-            child: const Text('Xóa'),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -624,19 +622,21 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     // TODO: Navigate to edit playlist screen
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Chỉnh sửa playlist')));
+    ).showSnackBar(const SnackBar(content: Text('Edit playlist')));
   }
 
   void _deletePlaylist(Playlist playlist) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa playlist'),
-        content: Text('Bạn có chắc chắn muốn xóa playlist "${playlist.name}"?'),
+        title: const Text('Remove Playlist'),
+        content: Text(
+          'Are you sure you want to remove playlist "${playlist.name}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
@@ -648,7 +648,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Xóa'),
+            child: const Text('Remove'),
           ),
         ],
       ),
@@ -659,6 +659,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     // TODO: Implement share functionality
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Chia sẻ playlist')));
+    ).showSnackBar(const SnackBar(content: Text('Share playlist')));
   }
 }

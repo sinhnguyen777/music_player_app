@@ -85,7 +85,7 @@ class PlaylistTile extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            '${playlist.trackCount} bài hát',
+                            '${playlist.trackCount} tracks',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: Colors.grey[600]),
                             overflow: TextOverflow.ellipsis,
@@ -109,7 +109,7 @@ class PlaylistTile extends StatelessWidget {
                                 children: [
                                   Icon(Icons.edit),
                                   SizedBox(width: 8),
-                                  Text('Chỉnh sửa'),
+                                  Text('Edit'),
                                 ],
                               ),
                             ),
@@ -120,7 +120,7 @@ class PlaylistTile extends StatelessWidget {
                                   Icon(Icons.delete, color: Colors.red),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Xóa',
+                                    'Delete',
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ],
@@ -183,7 +183,7 @@ class PlaylistTile extends StatelessWidget {
               ),
             const SizedBox(height: 2),
             Text(
-              '${playlist.trackCount} bài hát • ${_formatDate(playlist.updatedAt)}',
+              '${playlist.trackCount} tracks • ${_formatDate(playlist.updatedAt)}',
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
           ],
@@ -216,7 +216,7 @@ class PlaylistTile extends StatelessWidget {
                 children: [
                   Icon(Icons.delete, color: Colors.red),
                   SizedBox(width: 8),
-                  Text('Xóa', style: TextStyle(color: Colors.red)),
+                  Text('Delete', style: TextStyle(color: Colors.red)),
                 ],
               ),
             ),
@@ -247,11 +247,11 @@ class PlaylistTile extends StatelessWidget {
     if (difference.inDays > 30) {
       return '${date.day}/${date.month}/${date.year}';
     } else if (difference.inDays > 0) {
-      return '${difference.inDays} ngày trước';
+      return '${difference.inDays} days ago';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} giờ trước';
+      return '${difference.inHours} hours ago';
     } else {
-      return 'Vừa xong';
+      return 'Just now';
     }
   }
 }
