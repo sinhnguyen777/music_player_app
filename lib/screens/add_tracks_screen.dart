@@ -216,7 +216,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi khi thêm bài hát: $e'),
+            content: Text('Error adding track: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -228,7 +228,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thêm bài hát'),
+        title: const Text('Add Tracks'),
         actions: [
           if (_selectedTracks.isNotEmpty)
             TextButton(
@@ -251,7 +251,7 @@ class _AddTracksScreenState extends State<AddTracksScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Tìm kiếm bài hát, nghệ sĩ...',
+                      hintText: 'Search for tracks...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(

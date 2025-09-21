@@ -45,7 +45,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Chỉnh sửa playlist' : 'Tạo playlist mới'),
+        title: Text(isEditing ? 'Edit Playlist' : 'Create New Playlist'),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _savePlaylist,
@@ -110,13 +110,13 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Tên playlist *',
+                  labelText: 'Playlist Name',
                   hintText: 'Nhập tên cho playlist của bạn',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập tên playlist';
+                    return 'Please enter playlist name';
                   }
                   if (value.trim().length < 2) {
                     return 'Tên playlist phải có ít nhất 2 ký tự';
@@ -173,7 +173,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
                   child: _isLoading
                       ? const CircularProgressIndicator()
                       : Text(
-                          isEditing ? 'Lưu thay đổi' : 'Tạo playlist',
+                          isEditing ? 'Save Changes' : 'Create Playlist',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -296,8 +296,8 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
           SnackBar(
             content: Text(
               isEditing
-                  ? 'Playlist đã được cập nhật!'
-                  : 'Playlist đã được tạo!',
+                  ? 'Playlist updated successfully!'
+                  : 'Playlist created successfully!',
             ),
             backgroundColor: Colors.green,
           ),

@@ -61,7 +61,7 @@ class AuthProvider with ChangeNotifier {
       }
 
       print('🔥 User is null after registration');
-      _errorMessage = 'Không thể tạo tài khoản';
+      _errorMessage = 'Unable to create account';
       notifyListeners();
       return false;
     } catch (e) {
@@ -102,7 +102,7 @@ class AuthProvider with ChangeNotifier {
       _user = null;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Đăng xuất thất bại: ${e.toString()}';
+      _errorMessage = 'Logout failed: ${e.toString()}';
       notifyListeners();
     }
   }

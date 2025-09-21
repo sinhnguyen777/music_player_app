@@ -21,7 +21,7 @@ class QueueScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Hàng đợi phát',
+          'Play Queue',
           style: TextStyle(
             color: textPrimary,
             fontSize: 20,
@@ -57,7 +57,7 @@ class QueueScreen extends StatelessWidget {
                         children: [
                           Icon(Icons.shuffle),
                           SizedBox(width: 8),
-                          Text('Trộn hàng đợi'),
+                          Text('Shuffle Queue'),
                         ],
                       ),
                     ),
@@ -68,7 +68,7 @@ class QueueScreen extends StatelessWidget {
                           Icon(Icons.clear_all, color: Colors.red),
                           SizedBox(width: 8),
                           Text(
-                            'Xóa hàng đợi',
+                            'Clear Queue',
                             style: TextStyle(color: Colors.red),
                           ),
                         ],
@@ -95,7 +95,7 @@ class QueueScreen extends StatelessWidget {
                   Icon(Icons.queue_music, size: 64, color: textSecondary),
                   const SizedBox(height: 16),
                   Text(
-                    'Hàng đợi trống',
+                    'Queue is empty',
                     style: TextStyle(
                       color: textPrimary,
                       fontSize: 18,
@@ -122,7 +122,7 @@ class QueueScreen extends StatelessWidget {
                     Icon(Icons.queue_music, color: accentColor),
                     const SizedBox(width: 8),
                     Text(
-                      '${queue.length} bài hát trong hàng đợi',
+                      '${queue.length} tracks in queue',
                       style: TextStyle(color: textSecondary, fontSize: 14),
                     ),
                   ],
@@ -346,7 +346,7 @@ class QueueScreen extends StatelessWidget {
                   Icon(Icons.remove_circle_outline, color: Colors.red),
                   SizedBox(width: 8),
                   Text(
-                    'Xóa khỏi hàng đợi',
+                    'Remove from queue',
                     style: TextStyle(color: Colors.red),
                   ),
                 ],
@@ -372,9 +372,9 @@ class QueueScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: cardColor,
-        title: Text('Xóa hàng đợi', style: TextStyle(color: textPrimary)),
+        title: Text('Clear Queue', style: TextStyle(color: textPrimary)),
         content: Text(
-          'Bạn có chắc chắn muốn xóa tất cả bài hát khỏi hàng đợi?',
+          'Are you sure you want to remove all tracks from the queue?',
           style: TextStyle(color: textSecondary),
         ),
         actions: [
@@ -390,7 +390,7 @@ class QueueScreen extends StatelessWidget {
                 const SnackBar(content: Text('Clear queue coming soon!')),
               );
             },
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            child: const Text('Clear', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

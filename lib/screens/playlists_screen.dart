@@ -95,7 +95,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Playlists của tôi'),
+        title: const Text('My Playlists'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -136,7 +136,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                   color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Tìm kiếm playlist...',
+                  hintText: 'Search playlists...',
                   hintStyle: TextStyle(color: Colors.grey[600]),
                   prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                   suffixIcon: _searchController.text.isNotEmpty
@@ -190,7 +190,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Có lỗi xảy ra',
+                            'An error occurred',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 8),
@@ -204,7 +204,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                             onPressed: () {
                               playlistProvider.loadUserPlaylists();
                             },
-                            child: const Text('Thử lại'),
+                            child: const Text('Try Again'),
                           ),
                         ],
                       ),
@@ -228,12 +228,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Không tìm thấy playlist',
+                            'No playlists found',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Thử từ khóa khác',
+                            'Try different keywords',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -253,19 +253,19 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Chưa có playlist nào',
+                            'No playlists yet',
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Tạo playlist đầu tiên của bạn',
+                            'Create your first playlist',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
                             onPressed: _createPlaylist,
                             icon: const Icon(Icons.add),
-                            label: const Text('Tạo playlist'),
+                            label: const Text('Create Playlist'),
                           ),
                         ],
                       ),
@@ -293,7 +293,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         padding: const EdgeInsets.only(bottom: 80), // Avoid mini player
         child: FloatingActionButton(
           onPressed: _createPlaylist,
-          tooltip: 'Tạo playlist mới',
+          tooltip: 'Create new playlist',
           child: const Icon(Icons.add),
         ),
       ),
@@ -311,12 +311,12 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
             Icon(Icons.login, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'Vui lòng đăng nhập',
+              'Please login',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
             Text(
-              'Đăng nhập để xem và quản lý playlists của bạn.',
+              'Login to view and manage your playlists.',
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
@@ -328,7 +328,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
                 );
               },
-              child: const Text('Đăng nhập'),
+              child: const Text('Login'),
             ),
           ],
         ),
@@ -415,7 +415,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Không thể mở playlist để chỉnh sửa: ${e.toString()}',
+              'Could not open playlist for editing: ${e.toString()}',
             ),
             backgroundColor: Colors.red,
           ),
@@ -437,19 +437,19 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Xóa playlist'),
-        content: const Text('Bạn có chắc chắn muốn xóa playlist này?'),
+        title: const Text('Delete playlist'),
+        content: const Text('Are you sure you want to delete this playlist?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await context.read<PlaylistProvider>().deletePlaylist(playlistId);
             },
-            child: const Text('Xóa'),
+            child: const Text('Delete'),
           ),
         ],
       ),
