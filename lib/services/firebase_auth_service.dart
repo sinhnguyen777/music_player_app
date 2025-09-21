@@ -65,6 +65,15 @@ class FirebaseAuthService {
           );
       print('🔥📝 Firestore document created successfully');
 
+      // Send email verification
+      print('🔥📝 Sending email verification...');
+      await firebaseUser.sendEmailVerification();
+      print('🔥📝 Email verification sent');
+
+      // Logout user after registration to require email verification
+      await _auth.signOut();
+      print('🔥📝 User logged out after registration');
+
       print('🔥📝 Registration completed successfully for: $email');
       return newUser;
     } on FirebaseAuthException catch (e) {
@@ -90,6 +99,12 @@ class FirebaseAuthService {
       final User? firebaseUser = credential.user;
       if (firebaseUser == null) {
         throw Exception('Login failed');
+      }
+
+      // Check if email is verified
+      if (!firebaseUser.emailVerified) {
+        await _auth.signOut(); // Logout unverified user
+        throw Exception('Please verify your email before logging in');
       }
 
       // Get user data from Firestore
@@ -155,6 +170,34 @@ class FirebaseAuthService {
     }
   }
 
+  // Resend email verification
+  Future<void> resendEmailVerification(String email, String password) async {
+    try {
+      // Sign in temporarily to resend verification
+      final UserCredential credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final User? firebaseUser = credential.user;
+      if (firebaseUser == null) {
+        throw Exception('User not found');
+      }
+
+      if (firebaseUser.emailVerified) {
+        await _auth.signOut();
+        throw Exception('Email has already been verified');
+      }
+
+      await firebaseUser.sendEmailVerification();
+      await _auth.signOut(); // Logout after sending verification
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Failed to resend verification: ${e.toString()}');
+    }
+  }
+
   // Reset password
   Future<void> resetPassword(String email) async {
     try {
@@ -190,23 +233,27 @@ class FirebaseAuthService {
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
-        return 'Mật khẩu quá yếu';
+        return 'The password is too weak';
       case 'email-already-in-use':
-        return 'Email đã được sử dụng';
+        return 'This email address is already in use';
       case 'user-not-found':
-        return 'Không tìm thấy tài khoản';
+        return 'No account found with this email';
       case 'wrong-password':
-        return 'Mật khẩu không đúng';
+        return 'Incorrect password';
       case 'invalid-email':
-        return 'Email không hợp lệ';
+        return 'Invalid email address';
       case 'user-disabled':
-        return 'Tài khoản đã bị vô hiệu hóa';
+        return 'This account has been disabled';
       case 'too-many-requests':
-        return 'Quá nhiều yêu cầu, vui lòng thử lại sau';
+        return 'Too many requests, please try again later';
       case 'operation-not-allowed':
-        return 'Phương thức đăng nhập không được phép';
+        return 'This sign-in method is not allowed';
+      case 'invalid-credential':
+        return 'Invalid login credentials';
+      case 'network-request-failed':
+        return 'Network error, please check your connection';
       default:
-        return 'Lỗi xác thực: ${e.message ?? e.code}';
+        return 'Authentication error: ${e.message ?? e.code}';
     }
   }
 }

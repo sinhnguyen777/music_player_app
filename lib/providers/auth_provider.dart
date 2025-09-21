@@ -55,9 +55,8 @@ class AuthProvider with ChangeNotifier {
       );
 
       if (user != null) {
-        _user = user;
-        print('🔥 User set successfully: ${user.name}');
-        notifyListeners();
+        // Don't auto-login, user needs to verify email first
+        print('🔥 Registration successful, email verification required');
         return true;
       }
 
@@ -112,6 +111,17 @@ class AuthProvider with ChangeNotifier {
   Future<bool> resetPassword(String email) async {
     try {
       await _firebaseAuth.resetPassword(email);
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> resendEmailVerification(String email, String password) async {
+    try {
+      await _firebaseAuth.resendEmailVerification(email, password);
       return true;
     } catch (e) {
       _errorMessage = e.toString();

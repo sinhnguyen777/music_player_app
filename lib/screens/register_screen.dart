@@ -66,22 +66,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                'Đăng ký thành công! Bạn có thể đăng nhập ngay.',
+                                'Registration successful! Please verify your email before logging in.',
                               ),
                               backgroundColor: Colors.green,
+                              duration: Duration(seconds: 5),
                             ),
                           );
                           Navigator.pop(context);
                         } else {
                           setState(
-                            () =>
-                                _err = auth.errorMessage ?? 'Đăng ký thất bại',
+                            () => _err =
+                                auth.errorMessage ?? 'Registration failed',
                           );
                         }
                       } catch (e) {
                         setState(() {
                           _loading = false;
-                          _err = 'Lỗi: ${e.toString()}';
+                          _err = 'Error: ${e.toString()}';
                         });
                         print('Register error: $e');
                       }

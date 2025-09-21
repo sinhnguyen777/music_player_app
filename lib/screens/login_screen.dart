@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 import 'register_screen.dart';
 
@@ -49,7 +50,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (ok) {
                         Navigator.pop(context);
                       } else {
-                        setState(() => _err = 'Email hoặc mật khẩu không đúng');
+                        final errorMsg =
+                            auth.errorMessage ??
+                            'Email or password is incorrect';
+                        setState(() => _err = errorMsg);
+
+                        // Show resend verification option if email not verified
+                        if (errorMsg.contains('verify your email')) {
+                          _showResendVerificationDialog();
+                        }
                       }
                     },
               child: _loading
@@ -67,5 +76,63 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  void _showResendVerificationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Email not verified'),
+        content: const Text(
+          'Your account has not been verified. Would you like to resend the verification email?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _resendVerification();
+            },
+            child: const Text('Resend'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resendVerification() async {
+    if (_email.text.trim().isEmpty || _pass.text.isEmpty) {
+      setState(() => _err = 'Please enter email and password');
+      return;
+    }
+
+    setState(() => _loading = true);
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+
+    final success = await auth.resendEmailVerification(
+      _email.text.trim(),
+      _pass.text,
+    );
+
+    setState(() => _loading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Verification email has been resent. Please check your inbox.',
+          ),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 5),
+        ),
+      );
+    } else {
+      setState(
+        () => _err = auth.errorMessage ?? 'Could not send verification email',
+      );
+    }
   }
 }
