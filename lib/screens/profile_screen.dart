@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../providers/auth_provider.dart';
 import '../providers/playlist_provider.dart';
+import '../services/avatar_service.dart';
+import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
@@ -102,17 +104,7 @@ class ProfileScreen extends StatelessWidget {
                     radius: 50, // Reduced from 60
                     backgroundColor: cardColor,
                     child: auth.user?.avatarUrl != null
-                        ? ClipOval(
-                            child: Image.network(
-                              auth.user!.avatarUrl!,
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildDefaultAvatar(auth);
-                              },
-                            ),
-                          )
+                        ? ClipOval(child: _buildAvatarImage(auth))
                         : _buildDefaultAvatar(auth),
                   ),
                 ),
@@ -191,6 +183,34 @@ class ProfileScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildAvatarImage(AuthProvider auth) {
+    if (auth.user?.avatarUrl != null && auth.user!.avatarUrl!.isNotEmpty) {
+      // Check if it's Base64 or network URL
+      if (auth.user!.avatarUrl!.startsWith('data:image')) {
+        // Base64 image
+        final base64Image = AvatarService.base64ToImage(auth.user!.avatarUrl!);
+        if (base64Image != null) {
+          return SizedBox(width: 100, height: 100, child: base64Image);
+        } else {
+          return _buildDefaultAvatar(auth);
+        }
+      } else {
+        // Network URL (old Firebase Storage URLs)
+        return Image.network(
+          auth.user!.avatarUrl!,
+          width: 100,
+          height: 100,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildDefaultAvatar(auth);
+          },
+        );
+      }
+    } else {
+      return _buildDefaultAvatar(auth);
+    }
   }
 
   Widget _buildDefaultAvatar(AuthProvider auth) {
@@ -319,7 +339,7 @@ class ProfileScreen extends StatelessWidget {
         'title': 'Edit Profile',
         'subtitle': 'Update your personal information',
         'color': Colors.blue,
-        'onTap': () => _showEditProfileDialog(context, auth),
+        'onTap': () => _navigateToEditProfile(context, auth),
       },
       {
         'icon': Icons.favorite,
@@ -550,6 +570,38 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _navigateToEditProfile(
+    BuildContext context,
+    AuthProvider auth,
+  ) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+
+    // If profile was updated, you could refresh data here if needed
+    if (result == true) {
+      // Profile was successfully updated
+      // Any additional refresh logic can be added here
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green),
+              const SizedBox(width: 12),
+              Text('Profile updated successfully!'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
+  }
+
   void _showSettingsDialog(BuildContext context, AuthProvider auth) {
     showDialog(
       context: context,
@@ -558,26 +610,6 @@ class ProfileScreen extends StatelessWidget {
         title: Text('Settings', style: TextStyle(color: textPrimary)),
         content: Text(
           'The settings feature will be updated in the next version.',
-          style: TextStyle(color: textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: accentColor)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditProfileDialog(BuildContext context, AuthProvider auth) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: cardColor,
-        title: Text('Edit Profile', style: TextStyle(color: textPrimary)),
-        content: Text(
-          'The edit profile feature will be updated in the next version.',
           style: TextStyle(color: textSecondary),
         ),
         actions: [
