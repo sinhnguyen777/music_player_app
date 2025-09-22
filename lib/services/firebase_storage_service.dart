@@ -41,28 +41,28 @@ class FirebaseStorageService {
 
       final user = _auth.currentUser;
       if (user == null) {
-        throw Exception('Người dùng chưa đăng nhập');
+        throw Exception('User have not logged in');
       }
 
       // Check if file exists and is readable
       if (!await imageFile.exists()) {
-        throw Exception('Tệp ảnh không tồn tại');
+        throw Exception('File does not exist');
       }
 
       // Check file size (limit to 5MB)
       final fileSize = await imageFile.length();
       if (fileSize > 5 * 1024 * 1024) {
-        throw Exception('Kích thước ảnh quá lớn (tối đa 5MB)');
+        throw Exception('File size is too large (max 5MB)');
       }
 
-      print('Bắt đầu upload avatar cho user: ${user.uid}');
-      print('Kích thước file: ${fileSize / 1024 / 1024} MB');
+      print('Starting upload avatar for user: ${user.uid}');
+      print('File size: ${fileSize / 1024 / 1024} MB');
 
       // Create unique filename with user ID and timestamp
       final fileName =
           'avatar_${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      print('Đường dẫn file: avatars/$fileName');
+      print('File path: avatars/$fileName');
 
       // Try different ways to create storage reference
       Reference ref;
@@ -72,22 +72,22 @@ class FirebaseStorageService {
           bucket: _storageBucket,
         );
         ref = storageWithBucket.ref('avatars/$fileName');
-        print('Storage reference (với bucket cụ thể) tạo thành công');
+        print('Storage reference (with explicit bucket) created successfully');
       } catch (e) {
         print('Method 1 failed: $e');
         try {
           // Method 2: Direct path
           ref = _storage.ref('avatars/$fileName');
-          print('Storage reference (method 2) tạo thành công');
+          print('Storage reference (method 2) created successfully');
         } catch (e2) {
           print('Method 2 failed: $e2');
           // Method 3: Child path
           ref = _storage.ref().child('avatars').child(fileName);
-          print('Storage reference (method 3) tạo thành công');
+          print('Storage reference (method 3) created successfully');
         }
       }
 
-      print('Bắt đầu upload task...');
+      print('Starting upload task...');
 
       // Upload file with metadata
       final uploadTask = ref.putFile(
@@ -103,33 +103,33 @@ class FirebaseStorageService {
 
       // Wait for upload to complete
       final snapshot = await uploadTask;
-      print('Upload hoàn thành: ${snapshot.state}');
+      print('Upload complete: ${snapshot.state}');
 
       // Get download URL
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      print('Avatar upload thành công: $downloadUrl');
+      print('Avatar upload successful: $downloadUrl');
       return downloadUrl;
     } on FirebaseException catch (e) {
-      print('Lỗi Firebase: ${e.code} - ${e.message}');
+      print('Firebase error: ${e.code} - ${e.message}');
 
       if (e.code == 'storage/object-not-found') {
         throw Exception(
-          'Không tìm thấy bucket Firebase Storage. Vui lòng kiểm tra cấu hình Firebase.',
+          'Firebase Storage bucket not found. Please check your Firebase configuration.',
         );
       } else if (e.code == 'storage/unauthorized') {
         throw Exception(
-          'Không có quyền truy cập Firebase Storage. Vui lòng kiểm tra quy tắc bảo mật.',
+          'No access to Firebase Storage. Please check your security rules.',
         );
       } else if (e.code == 'storage/canceled') {
-        throw Exception('Upload bị hủy. Vui lòng thử lại.');
+        throw Exception('Upload canceled. Please try again.');
       } else if (e.code == 'storage/unknown') {
-        throw Exception('Lỗi không xác định từ Firebase Storage.');
+        throw Exception('Unknown error from Firebase Storage.');
       } else {
-        throw Exception('Lỗi Firebase Storage: ${e.message ?? e.code}');
+        throw Exception('Firebase Storage error: ${e.message ?? e.code}');
       }
     } catch (e) {
-      print('Lỗi upload avatar: $e');
-      throw Exception('Lỗi upload avatar: $e');
+      print('Error uploading avatar: $e');
+      throw Exception('Error uploading avatar: $e');
     }
   }
 

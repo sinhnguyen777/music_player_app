@@ -501,7 +501,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text('Đang xử lý ảnh...'),
+                Text('Processing image...'),
               ],
             ),
             backgroundColor: Colors.blue,
@@ -513,11 +513,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         newAvatarUrl = await AvatarService.imageToBase64(_selectedImage!);
 
         if (newAvatarUrl == null) {
-          throw Exception('Không thể xử lý ảnh. Vui lòng chọn ảnh khác.');
+          throw Exception(
+            'Could not process image. Please select another image.',
+          );
         }
 
         print(
-          'Avatar chuyển Base64 thành công: ${AvatarService.getBase64ImageSize(newAvatarUrl)} KB',
+          'Avatar successfully converted to Base64: ${AvatarService.getBase64ImageSize(newAvatarUrl)} KB',
         );
 
         // No need to delete old avatar since it's stored in Firestore
@@ -537,7 +539,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final success = await auth.updateProfile(updatedUser);
 
       if (success) {
-        _showSuccessSnackBar('Cập nhật hồ sơ thành công!');
+        _showSuccessSnackBar('Profile updated successfully!');
         setState(() {
           _hasChanges = false;
           _selectedImage = null; // Clear selected image after successful upload
@@ -552,11 +554,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ); // Return true to indicate changes were saved
         }
       } else {
-        throw Exception(auth.errorMessage ?? 'Không thể cập nhật hồ sơ');
+        throw Exception(auth.errorMessage ?? 'Could not update profile');
       }
     } catch (e) {
       _showErrorSnackBar(
-        'Lỗi cập nhật hồ sơ: ${e.toString().replaceAll('Exception: ', '')}',
+        'Error updating profile: ${e.toString().replaceAll('Exception: ', '')}',
       );
     } finally {
       if (mounted) {
