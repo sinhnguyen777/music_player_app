@@ -326,4 +326,37 @@ class PlayerProvider with ChangeNotifier {
     _lastPosition = Duration.zero;
     _historyAlreadySaved = false;
   }
+
+  /// Reset player state (call when user logs out)
+  Future<void> reset() async {
+    try {
+      // Stop current playback
+      await _audio.player.stop();
+
+      // Clear queue and reset index
+      _queue.clear();
+      _index = -1;
+
+      // Reset repeat mode
+      _repeatMode = RepeatMode.off;
+
+      // Reset tracking
+      _resetTracking();
+
+      print('🔄 Player reset successfully');
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error resetting player: $e');
+      // Still notify listeners to update UI
+      notifyListeners();
+    }
+  }
+
+  /// Dispose method for cleanup
+  @override
+  void dispose() {
+    _listeningTimer?.cancel();
+    _audio.player.dispose();
+    super.dispose();
+  }
 }
