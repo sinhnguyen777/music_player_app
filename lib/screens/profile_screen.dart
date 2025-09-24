@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/avatar_service.dart';
 import 'edit_profile_screen.dart';
+import 'listening_history_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
@@ -353,7 +354,14 @@ class ProfileScreen extends StatelessWidget {
         'title': 'Listening History',
         'subtitle': 'Recently played songs',
         'color': Colors.orange,
-        'onTap': () {}, // TODO: Navigate to history
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ListeningHistoryScreen(),
+            ),
+          );
+        },
       },
     ];
 
