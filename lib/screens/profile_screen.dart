@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../main.dart';
 import '../providers/auth_provider.dart';
+import '../providers/player_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/avatar_service.dart';
 import 'edit_profile_screen.dart';
@@ -646,8 +647,14 @@ class ProfileScreen extends StatelessWidget {
             child: Text('Cancel', style: TextStyle(color: textSecondary)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
+
+              // Reset player first (stop music and clear queue)
+              final playerProvider = context.read<PlayerProvider>();
+              await playerProvider.reset();
+
+              // Then logout
               auth.logout();
             },
             child: const Text('Logout', style: TextStyle(color: Colors.red)),
