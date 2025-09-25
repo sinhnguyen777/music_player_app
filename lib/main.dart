@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options_secure.dart';
@@ -17,11 +20,42 @@ import 'widgets/mini_player.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize JustAudioBackground for notifications with platform check
+  try {
+    if (Platform.isAndroid || Platform.isIOS) {
+      await JustAudioBackground.init(
+        androidNotificationChannelId:
+            'com.example.music_player_app.channel.audio',
+        androidNotificationChannelName: 'Music Playback',
+        androidNotificationChannelDescription: 'Music player controls',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+      );
+      print('JustAudioBackground initialized successfully');
+    }
+  } catch (e) {
+    print('Failed to initialize JustAudioBackground: $e');
+    // Continue without background audio - app won't crash
+  }
+
   // Load environment variables
   await dotenv.load(fileName: ".env");
 
   // Initialize Firebase with secure options
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // TODO: Initialize AudioService later after fixing issues
+  // final audioHandler = await AudioService.init(
+  //   builder: () => MusicAudioHandler(),
+  //   config: const AudioServiceConfig(
+  //     androidNotificationChannelId:
+  //         'com.example.music_player_app.channel.audio',
+  //     androidNotificationChannelName: 'Music Playback',
+  //     androidNotificationChannelDescription: 'Music player controls',
+  //     androidNotificationOngoing: true,
+  //     androidStopForegroundOnPause: true,
+  //   ),
+  // );
 
   runApp(const MyApp());
 }
@@ -33,7 +67,11 @@ const Color textPrimary = Color(0xFFFFFFFF);
 const Color textSecondary = Color(0xFFB0B0B0);
 
 class MyApp extends StatefulWidget {
+  // TODO: Add audioHandler back when AudioService is fixed
+  // final MusicAudioHandler audioHandler;
+
   const MyApp({super.key});
+
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -44,6 +82,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // All providers restored with fixes
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => PlayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => HomeProvider()..init()),
@@ -121,7 +160,11 @@ class MainNav extends StatefulWidget {
 
 class _MainNavState extends State<MainNav> {
   int _index = 0;
-  final _pages = const [HomeScreen(), PlaylistsScreen(), ProfileScreen()];
+  final _pages = [
+    const HomeScreen(),
+    const PlaylistsScreen(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
