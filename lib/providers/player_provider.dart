@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 
 import '../models/track.dart';
-import '../services/audio_service.dart';
 import '../services/listening_history_service.dart';
 import '../services/soundcloud_service.dart';
 
@@ -14,10 +16,12 @@ enum RepeatMode {
   one, // Repeat current track
 }
 
-class PlayerProvider with ChangeNotifier {
-  final SoundCloudService _sc = SoundCloudService();
-  final AudioService _audio = AudioService();
-  final ListeningHistoryService _historyService = ListeningHistoryService();
+class PlayerProvider extends ChangeNotifier {
+  final SoundCloudService _soundCloudService = SoundCloudService();
+  final ListeningHistoryService _listeningHistoryService =
+      ListeningHistoryService();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
   List<Track> _queue = [];
   int _index = -1;
   RepeatMode _repeatMode = RepeatMode.off;
@@ -33,10 +37,10 @@ class PlayerProvider with ChangeNotifier {
 
   Track? get current =>
       (_index >= 0 && _index < _queue.length) ? _queue[_index] : null;
-  AudioPlayer get audioPlayer => _audio.player;
-  Stream<PlayerState> get playerStateStream => _audio.player.playerStateStream;
-  Stream<Duration> get positionStream => _audio.player.positionStream;
-  Stream<Duration?> get durationStream => _audio.player.durationStream;
+  AudioPlayer get audioPlayer => _audioPlayer;
+  Stream<PlayerState> get playerStateStream => _audioPlayer.playerStateStream;
+  Stream<Duration> get positionStream => _audioPlayer.positionStream;
+  Stream<Duration?> get durationStream => _audioPlayer.durationStream;
   RepeatMode get repeatMode => _repeatMode;
 
   void toggleRepeatMode() {
@@ -55,12 +59,19 @@ class PlayerProvider with ChangeNotifier {
   }
 
   Future<void> init() async {
-    await _audio.init();
-    _audio.player.playerStateStream.listen((state) {
+    // Setup audio session for background playback
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+    } catch (e) {
+      print('Failed to configure audio session: $e');
+    }
+
+    _audioPlayer.playerStateStream.listen((state) {
       _handlePlayerStateChange(state);
       notifyListeners();
     });
-    _audio.player.processingStateStream.listen((proc) {
+    _audioPlayer.processingStateStream.listen((proc) {
       if (proc == ProcessingState.completed) {
         _onTrackCompleted();
         next();
@@ -68,7 +79,7 @@ class PlayerProvider with ChangeNotifier {
     });
 
     // Listen to position changes for tracking
-    _audio.player.positionStream.listen((position) {
+    _audioPlayer.positionStream.listen((position) {
       _lastPosition = position;
     });
   }
@@ -90,6 +101,7 @@ class PlayerProvider with ChangeNotifier {
         _index = _queue.length - 1;
       }
     }
+
     await _startCurrent();
   }
 
@@ -109,7 +121,7 @@ class PlayerProvider with ChangeNotifier {
     // For SoundCloud tracks, always get fresh stream URL
     if (t.source == 'soundcloud' || t.raw != null) {
       print('DEBUG PlayerProvider: Getting stream URL from SoundCloud API');
-      streamUrl = await _sc.getTrackStreamUrlFromTrack(t);
+      streamUrl = await _soundCloudService.getTrackStreamUrlFromTrack(t);
       print('DEBUG PlayerProvider: SoundCloud stream URL: $streamUrl');
     }
 
@@ -131,15 +143,30 @@ class PlayerProvider with ChangeNotifier {
     }
 
     print('DEBUG PlayerProvider: Playing URL: $streamUrl');
-    await _audio.playUrl(streamUrl);
+
+    // Create MediaItem for background playback
+    final mediaItem = MediaItem(
+      id: streamUrl, // Use streamUrl as id for playback
+      title: t.title,
+      artist: t.artist,
+      artUri: Uri.tryParse(t.artworkUrl),
+      duration: Duration(seconds: t.duration),
+    );
+
+    // Set audio source and play (without AudioService for now)
+    await _audioPlayer.setAudioSource(
+      AudioSource.uri(Uri.parse(streamUrl), tag: mediaItem),
+    );
+    await _audioPlayer.play();
     notifyListeners();
   }
 
-  void togglePlayPause() {
-    if (_audio.player.playing)
-      _audio.pause();
-    else
-      _audio.resume();
+  Future<void> togglePlayPause() async {
+    if (_audioPlayer.playing) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.play();
+    }
     notifyListeners();
   }
 
@@ -166,7 +193,7 @@ class PlayerProvider with ChangeNotifier {
           await _startCurrent();
         } else {
           // Reached end of queue, stop playing
-          _audio.stop();
+          await _audioPlayer.stop();
         }
         break;
     }
@@ -185,9 +212,9 @@ class PlayerProvider with ChangeNotifier {
 
   List<Track> get queue => _queue;
 
-  void stop() {
+  Future<void> stop() async {
     _onTrackStopped();
-    _audio.stop();
+    await _audioPlayer.stop();
     notifyListeners();
   }
 
@@ -254,7 +281,7 @@ class PlayerProvider with ChangeNotifier {
       print('✅ Đủ điều kiện lưu lịch sử!');
       _historyAlreadySaved = true;
 
-      _historyService.addListeningHistory(
+      _listeningHistoryService.addListeningHistory(
         track,
         playDuration: listenDuration,
         playPercentage: percentage,
@@ -305,7 +332,7 @@ class PlayerProvider with ChangeNotifier {
     final track = _trackingTrack!;
     final listenDuration = _lastPosition.inSeconds;
 
-    _historyService.addListeningHistory(
+    _listeningHistoryService.addListeningHistory(
       track,
       playDuration: listenDuration,
       playPercentage: 1.0, // 100% completed
@@ -331,7 +358,7 @@ class PlayerProvider with ChangeNotifier {
   Future<void> reset() async {
     try {
       // Stop current playback
-      await _audio.player.stop();
+      await _audioPlayer.stop();
 
       // Clear queue and reset index
       _queue.clear();
@@ -354,9 +381,10 @@ class PlayerProvider with ChangeNotifier {
 
   /// Dispose method for cleanup
   @override
+  @override
   void dispose() {
     _listeningTimer?.cancel();
-    _audio.player.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 }
