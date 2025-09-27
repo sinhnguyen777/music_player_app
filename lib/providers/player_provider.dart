@@ -1,10 +1,11 @@
 import 'dart:async';
 
-import 'package:audio_service/audio_service.dart';
+// import 'package:audio_service/audio_service.dart';  // Commented out temporarily
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
+
+// import 'package:just_audio_background/just_audio_background.dart';  // Commented out temporarily
 
 import '../models/track.dart';
 import '../services/listening_history_service.dart';
@@ -73,14 +74,27 @@ class PlayerProvider extends ChangeNotifier {
     });
     _audioPlayer.processingStateStream.listen((proc) {
       if (proc == ProcessingState.completed) {
+        // IMPORTANT: Save completion history BEFORE calling next()
+        // because next() will call _onTrackStopped() and reset tracking
         _onTrackCompleted();
-        next();
+
+        // Small delay to ensure history is saved before switching tracks
+        Future.delayed(Duration(milliseconds: 100), () {
+          next(fromCompletion: true);
+        });
       }
     });
 
     // Listen to position changes for tracking
     _audioPlayer.positionStream.listen((position) {
       _lastPosition = position;
+      // DEBUG: Log position every 10 seconds for tracking
+      if (position.inSeconds % 10 == 0 &&
+          position.inMilliseconds % 1000 < 100) {
+        print(
+          '🔊 Position: ${position.inSeconds}s - Tracking: ${_trackingTrack?.title ?? "None"}',
+        );
+      }
     });
   }
 
@@ -144,37 +158,45 @@ class PlayerProvider extends ChangeNotifier {
 
     print('DEBUG PlayerProvider: Playing URL: $streamUrl');
 
+    // TODO: Re-enable MediaItem after fixing JustAudioBackground
     // Create MediaItem for background playback
-    final mediaItem = MediaItem(
-      id: streamUrl, // Use streamUrl as id for playback
-      title: t.title,
-      artist: t.artist,
-      artUri: Uri.tryParse(t.artworkUrl),
-      duration: Duration(seconds: t.duration),
-    );
+    // final mediaItem = MediaItem(
+    //   id: streamUrl, // Use streamUrl as id for playback
+    //   title: t.title,
+    //   artist: t.artist,
+    //   artUri: Uri.tryParse(t.artworkUrl),
+    //   duration: Duration(seconds: t.duration),
+    // );
 
-    // Set audio source and play (without AudioService for now)
-    await _audioPlayer.setAudioSource(
-      AudioSource.uri(Uri.parse(streamUrl), tag: mediaItem),
-    );
+    // Set audio source and play (simple mode without background support)
+    await _audioPlayer.setAudioSource(AudioSource.uri(Uri.parse(streamUrl)));
     await _audioPlayer.play();
     notifyListeners();
   }
 
   Future<void> togglePlayPause() async {
-    if (_audioPlayer.playing) {
-      await _audioPlayer.pause();
-    } else {
-      await _audioPlayer.play();
+    try {
+      if (_audioPlayer.playing) {
+        await _audioPlayer.pause();
+      } else {
+        await _audioPlayer.play();
+      }
+    } catch (e) {
+      print('Error toggling play/pause: $e');
     }
     notifyListeners();
   }
 
-  Future<void> next() async {
+  Future<void> next({bool fromCompletion = false}) async {
     if (_queue.isEmpty) return;
 
-    // Save current track's listening history before switching
-    _onTrackStopped();
+    // Only save history if NOT called from completion (completion already saved)
+    if (!fromCompletion) {
+      _onTrackStopped();
+    } else {
+      // Just reset tracking without saving (already saved in _onTrackCompleted)
+      _resetTracking();
+    }
 
     switch (_repeatMode) {
       case RepeatMode.one:
@@ -221,16 +243,23 @@ class PlayerProvider extends ChangeNotifier {
   // === LISTENING HISTORY TRACKING ===
 
   void _handlePlayerStateChange(PlayerState state) {
+    print(
+      '🎮 Player state changed: playing=${state.playing}, current=${current?.title}',
+    );
+
     if (state.playing && _trackingTrack != current) {
       // New track started playing
+      print('🎵 Starting new track tracking');
       _onTrackStarted();
     } else if (state.playing &&
         _trackingTrack == current &&
         _listeningTimer == null) {
       // Track resumed, restart timer
+      print('▶️ Restarting tracking timer');
       _startListeningTimer();
     } else if (!state.playing && _trackingTrack != null) {
       // Track paused or stopped
+      print('⏸️ Track paused/stopped');
       _onTrackPaused();
     }
   }
@@ -289,6 +318,9 @@ class PlayerProvider extends ChangeNotifier {
           'completed': false,
           'sessionStartTime': _trackStartTime!.toIso8601String(),
           'playerState': 'threshold_reached',
+          // Save track info needed for replay
+          'trackUrl': track.url,
+          'trackRaw': track.raw,
         },
       );
     }
@@ -323,7 +355,8 @@ class PlayerProvider extends ChangeNotifier {
   void _onTrackCompleted() {
     if (_trackingTrack == null || _trackStartTime == null) return;
 
-    print('✅ Hoàn thành: ${_trackingTrack!.title}');
+    print('✅ Track completed: ${_trackingTrack!.title}');
+    print('💾 Saving completion history...');
 
     // Stop listening timer
     _listeningTimer?.cancel();
@@ -340,8 +373,12 @@ class PlayerProvider extends ChangeNotifier {
         'completed': true,
         'sessionStartTime': _trackStartTime!.toIso8601String(),
         'playerState': 'completed',
+        'trackUrl': track.url,
+        'trackRaw': track.raw,
       },
     );
+
+    print('✅ Completion history saved for: ${track.title}');
 
     _resetTracking();
   }

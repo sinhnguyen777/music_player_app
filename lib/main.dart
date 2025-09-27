@@ -1,9 +1,9 @@
-import 'dart:io';
+// import 'dart:io';  // Commented out temporarily
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:just_audio_background/just_audio_background.dart';
+// import 'package:just_audio_background/just_audio_background.dart';  // Commented out temporarily
 import 'package:provider/provider.dart';
 
 import 'firebase_options_secure.dart';
@@ -20,23 +20,24 @@ import 'widgets/mini_player.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // TODO: Fix JustAudioBackground initialization issues
   // Initialize JustAudioBackground for notifications with platform check
-  try {
-    if (Platform.isAndroid || Platform.isIOS) {
-      await JustAudioBackground.init(
-        androidNotificationChannelId:
-            'com.example.music_player_app.channel.audio',
-        androidNotificationChannelName: 'Music Playback',
-        androidNotificationChannelDescription: 'Music player controls',
-        androidNotificationOngoing: true,
-        androidStopForegroundOnPause: true,
-      );
-      print('JustAudioBackground initialized successfully');
-    }
-  } catch (e) {
-    print('Failed to initialize JustAudioBackground: $e');
-    // Continue without background audio - app won't crash
-  }
+  // try {
+  //   if (Platform.isAndroid || Platform.isIOS) {
+  //     await JustAudioBackground.init(
+  //       androidNotificationChannelId:
+  //           'com.example.music_player_app.channel.audio',
+  //       androidNotificationChannelName: 'Music Playback',
+  //       androidNotificationChannelDescription: 'Music player controls',
+  //       androidNotificationOngoing: true,
+  //       androidStopForegroundOnPause: true,
+  //     );
+  //     print('JustAudioBackground initialized successfully');
+  //   }
+  // } catch (e) {
+  //   print('Failed to initialize JustAudioBackground: $e');
+  //   // Continue without background audio - app won't crash
+  // }
 
   // Load environment variables
   await dotenv.load(fileName: ".env");
