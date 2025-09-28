@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'firebase_options_secure.dart';
 import 'providers/auth_provider.dart';
+import 'providers/favorite_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/listening_history_provider.dart';
 import 'providers/player_provider.dart';
@@ -95,6 +96,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => PlayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => HomeProvider()..init()),
         ChangeNotifierProvider(create: (_) => ListeningHistoryProvider()),
+        ChangeNotifierProvider(create: (_) => FavoriteProvider()..initialize()),
         ChangeNotifierProxyProvider<AuthProvider, PlaylistProvider>(
           create: (context) => PlaylistProvider(null),
           update: (context, auth, previous) {

@@ -731,4 +731,35 @@ class FirebasePlaylistService {
       return false;
     }
   }
+
+  // Get tracks by their IDs
+  Future<List<Track>> getTracksByIds(List<String> trackIds) async {
+    try {
+      if (trackIds.isEmpty) return [];
+
+      print('🔥 Getting tracks by IDs: $trackIds');
+
+      // Get track documents in parallel
+      final trackDocs = await Future.wait(
+        trackIds.map((id) => _firestore.collection('tracks').doc(id).get()),
+      );
+
+      final tracks = <Track>[];
+      for (int i = 0; i < trackDocs.length; i++) {
+        final doc = trackDocs[i];
+        if (doc.exists && doc.data() != null) {
+          final trackData = doc.data()!;
+          tracks.add(Track.fromFirestore(trackData));
+        } else {
+          print('⚠️ Track not found: ${trackIds[i]}');
+        }
+      }
+
+      print('🔥 Successfully loaded ${tracks.length} tracks');
+      return tracks;
+    } catch (e) {
+      print('❌ Error getting tracks by IDs: $e');
+      return [];
+    }
+  }
 }

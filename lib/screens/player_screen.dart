@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../main.dart';
 import '../models/track.dart';
 import '../providers/player_provider.dart';
+import '../widgets/favorite_button.dart';
 import 'queue_screen.dart';
 
 class PlayerScreen extends StatelessWidget {
@@ -219,10 +220,25 @@ class PlayerScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    IconButton(
-                      icon: Icon(Icons.shuffle, color: textSecondary),
-                      iconSize: 28,
-                      onPressed: () {},
+                    Consumer<PlayerProvider>(
+                      builder: (context, playerProvider, child) {
+                        final currentTrack = playerProvider.current;
+                        if (currentTrack != null) {
+                          return FavoriteButton(
+                            track: currentTrack,
+                            size: 28,
+                            unfavoriteColor: textSecondary,
+                          );
+                        }
+                        return IconButton(
+                          icon: Icon(
+                            Icons.favorite_border,
+                            color: textSecondary,
+                          ),
+                          iconSize: 28,
+                          onPressed: null,
+                        );
+                      },
                     ),
                     IconButton(
                       icon: Icon(Icons.skip_previous, color: textPrimary),

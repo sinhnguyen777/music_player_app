@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/playlist.dart';
+import '../models/track.dart';
+import 'playlist_artwork.dart';
 
 class PlaylistTile extends StatelessWidget {
   final Playlist playlist;
+  final List<Track>? tracks; // Optional tracks for artwork generation
   final bool isGridView;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
@@ -12,6 +15,7 @@ class PlaylistTile extends StatelessWidget {
   const PlaylistTile({
     super.key,
     required this.playlist,
+    this.tracks,
     this.isGridView = false,
     this.onTap,
     this.onEdit,
@@ -47,7 +51,13 @@ class PlaylistTile extends StatelessWidget {
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(color: Colors.grey),
-                child: playlist.imageUrl != null
+                child: tracks != null && tracks!.isNotEmpty
+                    ? PlaylistArtwork(
+                        tracks: tracks!,
+                        size: double.infinity,
+                        borderRadius: 0,
+                      )
+                    : playlist.imageUrl != null
                     ? Image.network(
                         playlist.imageUrl!,
                         fit: BoxFit.cover,
@@ -155,7 +165,9 @@ class PlaylistTile extends StatelessWidget {
           child: SizedBox(
             width: 56,
             height: 56,
-            child: playlist.imageUrl != null
+            child: tracks != null && tracks!.isNotEmpty
+                ? PlaylistArtworkCompact(tracks: tracks!)
+                : playlist.imageUrl != null
                 ? Image.network(
                     playlist.imageUrl!,
                     fit: BoxFit.cover,
