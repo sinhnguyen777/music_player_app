@@ -1,9 +1,9 @@
-// import 'dart:io';  // Commented out temporarily
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// import 'package:just_audio_background/just_audio_background.dart';  // Commented out temporarily
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:provider/provider.dart';
 
 import 'firebase_options_secure.dart';
@@ -20,24 +20,31 @@ import 'widgets/mini_player.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // TODO: Fix JustAudioBackground initialization issues
-  // Initialize JustAudioBackground for notifications with platform check
-  // try {
-  //   if (Platform.isAndroid || Platform.isIOS) {
-  //     await JustAudioBackground.init(
-  //       androidNotificationChannelId:
-  //           'com.example.music_player_app.channel.audio',
-  //       androidNotificationChannelName: 'Music Playback',
-  //       androidNotificationChannelDescription: 'Music player controls',
-  //       androidNotificationOngoing: true,
-  //       androidStopForegroundOnPause: true,
-  //     );
-  //     print('JustAudioBackground initialized successfully');
-  //   }
-  // } catch (e) {
-  //   print('Failed to initialize JustAudioBackground: $e');
-  //   // Continue without background audio - app won't crash
-  // }
+  // Enable JustAudioBackground for notification controls
+  try {
+    if (Platform.isAndroid || Platform.isIOS) {
+      print('🎵 Khởi tạo JustAudioBackground...');
+      await JustAudioBackground.init(
+        androidNotificationChannelId:
+            'com.example.music_player_app.channel.audio',
+        androidNotificationChannelName: 'Music Playback',
+        androidNotificationChannelDescription: 'Music player controls',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+        androidNotificationClickStartsActivity: true,
+        androidNotificationIcon: 'mipmap/ic_launcher',
+        preloadArtwork: true,
+        artDownscaleWidth: 200,
+        artDownscaleHeight: 200,
+      );
+      print('✅ JustAudioBackground khởi tạo thành công!');
+    } else {
+      print('ℹ️ Nền tảng này không hỗ trợ background audio');
+    }
+  } catch (e) {
+    print('❌ Lỗi khởi tạo JustAudioBackground: $e');
+    print('📱 App sẽ tiếp tục không có background notifications');
+  }
 
   // Load environment variables
   await dotenv.load(fileName: ".env");
@@ -45,7 +52,8 @@ void main() async {
   // Initialize Firebase with secure options
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // TODO: Initialize AudioService later after fixing issues
+  // TODO: AudioService temporarily disabled
+  // Initialize AudioService for background playback
   // final audioHandler = await AudioService.init(
   //   builder: () => MusicAudioHandler(),
   //   config: const AudioServiceConfig(
@@ -68,7 +76,6 @@ const Color textPrimary = Color(0xFFFFFFFF);
 const Color textSecondary = Color(0xFFB0B0B0);
 
 class MyApp extends StatefulWidget {
-  // TODO: Add audioHandler back when AudioService is fixed
   // final MusicAudioHandler audioHandler;
 
   const MyApp({super.key});
