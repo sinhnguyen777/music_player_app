@@ -762,4 +762,120 @@ class FirebasePlaylistService {
       return [];
     }
   }
+
+  // Add multiple tracks to playlist at once (simplified and more stable)
+  Future<Map<String, bool>> addMultipleTracksToPlaylist(
+    String playlistId,
+    List<Track> tracks,
+    String addedBy,
+  ) async {
+    final results = <String, bool>{};
+
+    try {
+      print('🔥 Adding ${tracks.length} tracks to playlist $playlistId');
+
+      if (tracks.isEmpty) {
+        print('🔥 No tracks to add');
+        return results;
+      }
+
+      // Use individual track additions to avoid complex transactions
+      // This is more stable and prevents crashes
+      for (final track in tracks) {
+        try {
+          final success = await addTrackToPlaylist(playlistId, track, addedBy);
+          results[track.id] = success;
+
+          if (success) {
+            print('✅ Added track: ${track.title}');
+          } else {
+            print('⚠️ Track ${track.title} already exists or failed to add');
+          }
+
+          // Delay between each track to prevent overwhelming Firestore
+          await Future.delayed(const Duration(milliseconds: 300));
+        } catch (e) {
+          print('❌ Error adding track ${track.title}: $e');
+          results[track.id] = false;
+        }
+      }
+
+      print('🔥 Batch add completed. Results: $results');
+      return results;
+    } catch (e) {
+      print('❌ Error adding multiple tracks to playlist: $e');
+      // Mark all as failed if error occurs
+      for (final track in tracks) {
+        results[track.id] = false;
+      }
+      return results;
+    }
+  }
+
+  // Backup method - extremely simple approach
+  Future<bool> addSingleTrackSafely(
+    String playlistId,
+    Track track,
+    String addedBy,
+  ) async {
+    try {
+      print('🔄 Attempting to add single track safely: ${track.title}');
+
+      // Check if track already exists first
+      final playlistRef = _firestore.collection('playlists').doc(playlistId);
+      final playlistDoc = await playlistRef.get();
+
+      if (!playlistDoc.exists) {
+        print('❌ Playlist does not exist');
+        return false;
+      }
+
+      final data = playlistDoc.data();
+      final trackIds = List<String>.from(data?['trackIds'] ?? []);
+
+      if (trackIds.contains(track.id)) {
+        print('⚠️ Track already exists in playlist');
+        return false;
+      }
+
+      // Add track to tracks collection with complete data
+      final trackData = {
+        'id': track.id,
+        'title': track.title,
+        'artist': track.artist,
+        'artworkUrl': track.artworkUrl,
+        'duration': track.duration,
+        'source': track.source,
+        'url': track.url,
+        'addedBy': addedBy,
+        'addedAt': FieldValue.serverTimestamp(),
+      };
+
+      // Include raw data if available (crucial for SoundCloud tracks)
+      if (track.raw != null) {
+        trackData['raw'] = track.raw;
+        print('💾 Saving track with raw data: ${track.raw?.keys}');
+      } else {
+        print(
+          '⚠️ Track ${track.title} has no raw data - may cause playback issues',
+        );
+      }
+
+      await _firestore.collection('tracks').doc(track.id).set(trackData);
+
+      // Update playlist with new track
+      trackIds.add(track.id);
+      await playlistRef.update({
+        'trackIds': trackIds,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      print('✅ Successfully added track: ${track.title}');
+      return true;
+    } catch (e) {
+      print('❌ Error in addSingleTrackSafely: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
+      return false;
+    }
+  }
 }

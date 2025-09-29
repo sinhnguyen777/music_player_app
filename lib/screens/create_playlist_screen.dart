@@ -50,7 +50,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
           TextButton(
             onPressed: _isLoading ? null : _savePlaylist,
             child: Text(
-              isEditing ? 'Lưu' : 'Tạo',
+              isEditing ? 'Save' : 'Create',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -100,7 +100,9 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
                   onPressed: _pickImage,
                   icon: const Icon(Icons.photo_camera),
                   label: Text(
-                    _imageUrl != null ? 'Thay đổi ảnh bìa' : 'Thêm ảnh bìa',
+                    _imageUrl != null
+                        ? 'Change Cover Image'
+                        : 'Add Cover Image',
                   ),
                 ),
               ),
@@ -111,7 +113,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Playlist Name',
-                  hintText: 'Nhập tên cho playlist của bạn',
+                  hintText: 'Enter your playlist name',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
@@ -119,7 +121,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
                     return 'Please enter playlist name';
                   }
                   if (value.trim().length < 2) {
-                    return 'Tên playlist phải có ít nhất 2 ký tự';
+                    return 'Playlist name must be at least 2 characters';
                   }
                   return null;
                 },
@@ -131,8 +133,8 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
-                  labelText: 'Mô tả',
-                  hintText: 'Mô tả về playlist của bạn (tùy chọn)',
+                  labelText: 'Description',
+                  hintText: 'Enter a description for your playlist (optional)',
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
@@ -143,11 +145,11 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
               // Privacy Setting
               Card(
                 child: SwitchListTile(
-                  title: const Text('Playlist công khai'),
+                  title: const Text('Public Playlist'),
                   subtitle: Text(
                     _isPublic
-                        ? 'Mọi người có thể tìm thấy và nghe playlist này'
-                        : 'Chỉ bạn có thể nghe playlist này',
+                        ? 'Anyone can find and listen to this playlist'
+                        : 'Only you can listen to this playlist',
                   ),
                   value: _isPublic,
                   onChanged: (value) {
@@ -195,7 +197,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
         Icon(Icons.add_photo_alternate, size: 48, color: Colors.grey[600]),
         const SizedBox(height: 8),
         Text(
-          'Thêm ảnh bìa',
+          'Add Cover Image',
           style: TextStyle(color: Colors.grey[600], fontSize: 14),
         ),
       ],
@@ -208,10 +210,10 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Thêm ảnh bìa'),
+        title: const Text('Add Cover Image'),
         content: TextField(
           decoration: const InputDecoration(
-            hintText: 'Nhập URL ảnh...',
+            hintText: 'Enter image URL...',
             border: OutlineInputBorder(),
           ),
           onSubmitted: (url) {
@@ -226,7 +228,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Hủy'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -235,7 +237,7 @@ class _CreatePlaylistScreenState extends State<CreatePlaylistScreen> {
                 _imageUrl = null;
               });
             },
-            child: const Text('Xóa ảnh'),
+            child: const Text('Remove Image'),
           ),
         ],
       ),

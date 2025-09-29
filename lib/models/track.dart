@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Track {
   final String id;
   final String title;
@@ -63,7 +65,7 @@ class Track {
       'genres': genres,
       'url': url,
       'raw': raw,
-      'addedAt': addedAt?.toIso8601String(),
+      'addedAt': addedAt != null ? Timestamp.fromDate(addedAt!) : null,
       'addedBy': addedBy,
       'trackNumber': trackNumber,
       'source': source,
@@ -72,6 +74,16 @@ class Track {
 
   // Create Track from Firestore document
   factory Track.fromFirestore(Map<String, dynamic> doc) {
+    DateTime? parsedAddedAt;
+    if (doc['addedAt'] != null) {
+      // Handle both Timestamp and String formats
+      if (doc['addedAt'] is String) {
+        parsedAddedAt = DateTime.parse(doc['addedAt']);
+      } else if (doc['addedAt'] is Timestamp) {
+        parsedAddedAt = (doc['addedAt'] as Timestamp).toDate();
+      }
+    }
+
     return Track(
       id: doc['id'] as String,
       title: doc['title'] as String,
@@ -83,7 +95,7 @@ class Track {
       genres: List<String>.from(doc['genres'] ?? []),
       url: doc['url'] as String?,
       raw: doc['raw'] as Map<String, dynamic>?,
-      addedAt: doc['addedAt'] != null ? DateTime.parse(doc['addedAt']) : null,
+      addedAt: parsedAddedAt,
       addedBy: doc['addedBy'] as String?,
       trackNumber: doc['trackNumber'] as int?,
       source: doc['source'] as String?,

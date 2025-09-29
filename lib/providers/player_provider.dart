@@ -41,8 +41,14 @@ class PlayerProvider extends ChangeNotifier {
     print('🔄 PlayerProvider initialized - tracking reset');
   }
 
-  Track? get current =>
-      (_index >= 0 && _index < _queue.length) ? _queue[_index] : null;
+  Track? get current {
+    final track = (_index >= 0 && _index < _queue.length)
+        ? _queue[_index]
+        : null;
+    // print('🎵 Current track getter: index $_index, track: ${track?.title}');
+    return track;
+  }
+
   AudioPlayer get audioPlayer => _audioPlayer;
   Stream<PlayerState> get playerStateStream => _audioPlayer.playerStateStream;
   Stream<Duration> get positionStream => _audioPlayer.positionStream;
@@ -212,6 +218,10 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> next({bool fromCompletion = false}) async {
     if (_queue.isEmpty) return;
 
+    print(
+      '🎵 Next track called. Current index: $_index. Queue length: ${_queue.length}',
+    );
+
     // Only save history if NOT called from completion (completion already saved)
     if (!fromCompletion) {
       _onTrackStopped();
@@ -223,35 +233,53 @@ class PlayerProvider extends ChangeNotifier {
     switch (_repeatMode) {
       case RepeatMode.one:
         // Repeat current track
+        print('🔄 Repeat mode: one - repeating current track');
         await _startCurrent();
         break;
       case RepeatMode.all:
         // Move to next track, loop back to start if at end
         _index = (_index + 1) % _queue.length;
+        print('🔄 Repeat mode: all - moved to index $_index');
+        notifyListeners(); // Notify before starting to update UI immediately
         await _startCurrent();
         break;
       case RepeatMode.off:
         // Move to next track, stop if at end
         if (_index < _queue.length - 1) {
           _index++;
+          print('⏭️ Moved to next track at index $_index');
+          notifyListeners(); // Notify before starting to update UI immediately
           await _startCurrent();
         } else {
           // Reached end of queue, stop playing
+          print('⏹️ Reached end of queue, stopping');
           await _audioPlayer.stop();
+          notifyListeners(); // Notify UI that playback stopped
         }
         break;
     }
+
+    // Always notify listeners after index change
+    notifyListeners();
   }
 
   Future<void> previous() async {
     if (_queue.isEmpty) return;
+
+    print('🎵 Previous track called. Current index: $_index');
 
     // Save current track's listening history before switching
     _onTrackStopped();
 
     _index = (_index - 1);
     if (_index < 0) _index = 0;
+
+    print('⏮️ Moved to previous track at index $_index');
+    notifyListeners(); // Notify before starting to update UI immediately
     await _startCurrent();
+
+    // Always notify listeners after index change
+    notifyListeners();
   }
 
   List<Track> get queue => _queue;

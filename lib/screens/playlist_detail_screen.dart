@@ -6,6 +6,7 @@ import '../models/track.dart';
 import '../providers/player_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/firebase_playlist_service.dart';
+import '../widgets/playlist_artwork.dart';
 import 'add_tracks_screen.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
@@ -88,7 +89,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           if (playlist == null) {
             return Scaffold(
               appBar: AppBar(),
-              body: const Center(child: Text('Không tìm thấy playlist')),
+              body: const Center(child: Text('Playlist not found')),
             );
           }
 
@@ -115,13 +116,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      playlist.imageUrl != null
-                          ? Image.network(
-                              playlist.imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildDefaultBackground();
-                              },
+                      _tracks.isNotEmpty
+                          ? PlaylistArtwork(
+                              tracks: _tracks,
+                              size: double.infinity,
+                              borderRadius: 0,
                             )
                           : _buildDefaultBackground(),
                       // Gradient overlay
@@ -159,7 +158,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           children: [
                             Icon(Icons.edit),
                             SizedBox(width: 8),
-                            Text('Chỉnh sửa'),
+                            Text('Edit'),
                           ],
                         ),
                       ),
@@ -169,7 +168,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           children: [
                             Icon(Icons.share),
                             SizedBox(width: 8),
-                            Text('Chia sẻ'),
+                            Text('Share'),
                           ],
                         ),
                       ),
@@ -179,7 +178,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           children: [
                             Icon(Icons.delete, color: Colors.red),
                             SizedBox(width: 8),
-                            Text('Xóa', style: TextStyle(color: Colors.red)),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),
@@ -195,45 +194,100 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (playlist.description.isNotEmpty) ...[
-                        Text(
-                          playlist.description,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
+                      // Small artwork and basic info
                       Row(
                         children: [
-                          Icon(
-                            Icons.music_note,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${_tracks.length} tracks',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _tracks.isNotEmpty
+                                  ? PlaylistArtwork(
+                                      tracks: _tracks,
+                                      size: 80,
+                                      borderRadius: 8,
+                                    )
+                                  : Container(
+                                      color: Colors.grey[800],
+                                      child: Icon(
+                                        Icons.queue_music,
+                                        size: 32,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 16),
-                          Icon(
-                            playlist.isPublic ? Icons.public : Icons.lock,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            playlist.isPublic ? 'Public' : 'Private',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (playlist.description.isNotEmpty) ...[
+                                  Text(
+                                    playlist.description,
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.music_note,
+                                      size: 16,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${_tracks.length} tracks',
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      playlist.isPublic
+                                          ? Icons.public
+                                          : Icons.lock,
+                                      size: 16,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      playlist.isPublic ? 'Public' : 'Private',
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
 
                       // Control buttons
                       Row(
@@ -618,11 +672,114 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     );
   }
 
-  void _editPlaylist(Playlist playlist) async {
-    // TODO: Navigate to edit playlist screen
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Edit playlist')));
+  void _editPlaylist(Playlist playlist) {
+    final nameController = TextEditingController(text: playlist.name);
+    final descriptionController = TextEditingController(
+      text: playlist.description,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF282828),
+        title: const Text(
+          'Edit Playlist',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Playlist Name',
+                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                ),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF1DB954)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descriptionController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Description (Optional)',
+                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                ),
+                focusedBorder: const UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF1DB954)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white.withOpacity(0.7)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Playlist name cannot be empty'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context);
+
+              // Update playlist
+              final updatedPlaylist = playlist.copyWith(
+                name: nameController.text.trim(),
+                description: descriptionController.text.trim(),
+              );
+
+              final success = await context
+                  .read<PlaylistProvider>()
+                  .updatePlaylist(updatedPlaylist);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                          ? 'Playlist updated successfully'
+                          : 'Failed to update playlist',
+                    ),
+                    backgroundColor: success
+                        ? const Color(0xFF1DB954)
+                        : Colors.red,
+                  ),
+                );
+              }
+
+              // Clean up controllers
+              nameController.dispose();
+              descriptionController.dispose();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1DB954),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deletePlaylist(Playlist playlist) {
