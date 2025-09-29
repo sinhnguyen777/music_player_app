@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'firebase_options_secure.dart';
 import 'providers/auth_provider.dart';
+import 'providers/favorite_provider.dart';
 import 'providers/home_provider.dart';
 import 'providers/listening_history_provider.dart';
 import 'providers/player_provider.dart';
@@ -20,9 +21,10 @@ import 'widgets/mini_player.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize JustAudioBackground for notifications with platform check
+  // Enable JustAudioBackground for notification controls
   try {
     if (Platform.isAndroid || Platform.isIOS) {
+      print('🎵 Khởi tạo JustAudioBackground...');
       await JustAudioBackground.init(
         androidNotificationChannelId:
             'com.example.music_player_app.channel.audio',
@@ -30,12 +32,19 @@ void main() async {
         androidNotificationChannelDescription: 'Music player controls',
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
+        androidNotificationClickStartsActivity: true,
+        androidNotificationIcon: 'mipmap/ic_launcher',
+        preloadArtwork: true,
+        artDownscaleWidth: 200,
+        artDownscaleHeight: 200,
       );
-      print('JustAudioBackground initialized successfully');
+      print('✅ JustAudioBackground khởi tạo thành công!');
+    } else {
+      print('ℹ️ Nền tảng này không hỗ trợ background audio');
     }
   } catch (e) {
-    print('Failed to initialize JustAudioBackground: $e');
-    // Continue without background audio - app won't crash
+    print('❌ Lỗi khởi tạo JustAudioBackground: $e');
+    print('📱 App sẽ tiếp tục không có background notifications');
   }
 
   // Load environment variables
@@ -44,7 +53,8 @@ void main() async {
   // Initialize Firebase with secure options
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // TODO: Initialize AudioService later after fixing issues
+  // TODO: AudioService temporarily disabled
+  // Initialize AudioService for background playback
   // final audioHandler = await AudioService.init(
   //   builder: () => MusicAudioHandler(),
   //   config: const AudioServiceConfig(
@@ -67,7 +77,6 @@ const Color textPrimary = Color(0xFFFFFFFF);
 const Color textSecondary = Color(0xFFB0B0B0);
 
 class MyApp extends StatefulWidget {
-  // TODO: Add audioHandler back when AudioService is fixed
   // final MusicAudioHandler audioHandler;
 
   const MyApp({super.key});
@@ -87,6 +96,7 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider(create: (_) => PlayerProvider()..init()),
         ChangeNotifierProvider(create: (_) => HomeProvider()..init()),
         ChangeNotifierProvider(create: (_) => ListeningHistoryProvider()),
+        ChangeNotifierProvider(create: (_) => FavoriteProvider()..initialize()),
         ChangeNotifierProxyProvider<AuthProvider, PlaylistProvider>(
           create: (context) => PlaylistProvider(null),
           update: (context, auth, previous) {

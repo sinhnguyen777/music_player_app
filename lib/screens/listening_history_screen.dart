@@ -399,9 +399,7 @@ class _ListeningHistoryScreenState extends State<ListeningHistoryScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
-        onTap: () {
-          // TODO: Play track
-        },
+        onTap: () => _playTopTrack(track),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -573,6 +571,16 @@ class _ListeningHistoryScreenState extends State<ListeningHistoryScreen>
   }
 
   void _playTrack(ListeningHistory history) {
+    print('🎯 HISTORY: Attempting to play track from history');
+    print('📋 Track ID: ${history.trackId}');
+    print('📋 Track Title: ${history.trackTitle}');
+    print('📋 Track Source: ${history.source}');
+    print('📋 Metadata: ${history.metadata}');
+
+    // Extract track info from metadata if available
+    final trackUrl = history.metadata?['trackUrl'] ?? '';
+    final trackRaw = history.metadata?['trackRaw'];
+
     // Create Track from history data
     final track = Track(
       id: history.trackId,
@@ -581,7 +589,47 @@ class _ListeningHistoryScreenState extends State<ListeningHistoryScreen>
       artworkUrl: history.trackArtworkUrl,
       duration: history.trackDuration,
       source: history.source,
+      url: trackUrl, // Use saved URL from metadata
+      raw: trackRaw, // Use saved raw data from metadata
     );
+
+    print('🎵 Created Track object:');
+    print('   - ID: ${track.id}');
+    print('   - Title: ${track.title}');
+    print('   - Source: ${track.source}');
+    print('   - Has raw data: ${track.raw != null}');
+    print('   - Raw data: ${track.raw}');
+
+    try {
+      // Play track using PlayerProvider
+      context.read<PlayerProvider>().playTrack(track);
+      print('✅ PlayerProvider.playTrack() called successfully');
+    } catch (e) {
+      print('❌ Error calling PlayerProvider.playTrack(): $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error playing track: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _playTopTrack(Map<String, dynamic> trackData) {
+    // Create Track from top track data
+    final track = Track(
+      id: trackData['trackId'] ?? '',
+      title: trackData['trackTitle'] ?? '',
+      artist: trackData['trackArtist'] ?? '',
+      artworkUrl: trackData['trackArtworkUrl'] ?? '',
+      duration: trackData['trackDuration'] ?? 0,
+      source: trackData['source'] ?? 'soundcloud',
+      url: '', // Empty for now, PlayerProvider will fetch stream URL
+      raw: trackData, // Use full track data as raw
+    );
+
+    print('🎵 Playing top track: ${track.title}');
+    print('🔍 Track source: ${track.source}');
 
     // Play track using PlayerProvider
     context.read<PlayerProvider>().playTrack(track);

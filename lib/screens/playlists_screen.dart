@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/playlist.dart';
 import '../providers/playlist_provider.dart';
-import '../widgets/playlist_tile.dart';
+import '../widgets/playlist_tile_with_tracks.dart';
 import 'create_playlist_screen.dart';
 import 'login_screen.dart';
 import 'playlist_detail_screen.dart';
@@ -347,7 +347,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       itemCount: playlists.length,
       itemBuilder: (context, index) {
         final playlist = playlists[index];
-        return PlaylistTile(
+        return PlaylistTileWithTracks(
           playlist: playlist,
           isGridView: true,
           onTap: () => _openPlaylist(playlist.id),
@@ -363,7 +363,7 @@ class _PlaylistsScreenState extends State<PlaylistsScreen> {
       itemCount: playlists.length,
       itemBuilder: (context, index) {
         final playlist = playlists[index];
-        return PlaylistTile(
+        return PlaylistTileWithTracks(
           playlist: playlist,
           isGridView: false,
           onTap: () => _openPlaylist(playlist.id),

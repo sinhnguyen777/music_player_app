@@ -2,10 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../main.dart';
 import '../models/track.dart';
 import '../providers/player_provider.dart';
 import '../screens/player_screen.dart';
-import '../main.dart';
+import '../widgets/favorite_button.dart';
 
 class TrackTile extends StatelessWidget {
   final Track track;
@@ -83,30 +84,41 @@ class TrackTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: playing
-                        ? accentColor
-                        : textSecondary.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      playing ? Icons.pause : Icons.play_arrow,
-                      color: playing ? textPrimary : textSecondary,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FavoriteButton(
+                      track: track,
+                      size: 20,
+                      unfavoriteColor: textSecondary,
                     ),
-                    onPressed: () async {
-                      await player.playTrack(track, queue: list);
-                      if (context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PlayerScreen(),
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                    const SizedBox(width: 4),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: playing
+                            ? accentColor
+                            : textSecondary.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          playing ? Icons.pause : Icons.play_arrow,
+                          color: playing ? textPrimary : textSecondary,
+                        ),
+                        onPressed: () async {
+                          await player.playTrack(track, queue: list);
+                          if (context.mounted) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PlayerScreen(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

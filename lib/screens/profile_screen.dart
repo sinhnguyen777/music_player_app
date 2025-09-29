@@ -7,6 +7,7 @@ import '../providers/player_provider.dart';
 import '../providers/playlist_provider.dart';
 import '../services/avatar_service.dart';
 import 'edit_profile_screen.dart';
+import 'favorite_screen.dart';
 import 'listening_history_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
@@ -348,7 +349,7 @@ class ProfileScreen extends StatelessWidget {
         'title': 'Favorite Songs',
         'subtitle': 'View your favorite songs',
         'color': Colors.red,
-        'onTap': () {}, // TODO: Navigate to favorites
+        'onTap': () => _navigateToFavorites(context),
       },
       {
         'icon': Icons.history,
@@ -628,6 +629,13 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _navigateToFavorites(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const FavoriteScreen()),
     );
   }
 

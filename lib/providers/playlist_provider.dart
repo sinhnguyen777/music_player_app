@@ -379,4 +379,17 @@ class PlaylistProvider with ChangeNotifier {
       'privatePlaylists': _playlists.where((p) => !p.isPublic).length,
     };
   }
+
+  // Get tracks by IDs for artwork generation
+  Future<List<Track>> getTracksByIds(List<String> trackIds) async {
+    try {
+      if (trackIds.isEmpty) return [];
+
+      // Use the Firebase service to get tracks by IDs
+      return await _firebasePlaylistService.getTracksByIds(trackIds);
+    } catch (e) {
+      print('Error getting tracks by IDs: $e');
+      return [];
+    }
+  }
 }
