@@ -173,38 +173,38 @@ Before running this project, make sure you have:
 
 ```
 lib/
-├── main.dart                           # App entry point
-├── models/                             # Data models
-│   ├── track.dart                      # Track model
-│   ├── playlist.dart                   # Playlist model
-│   ├── user.dart                       # User model
-│   └── queue_item.dart                 # Queue item model
-├── screens/                            # UI screens
-│   ├── home_screen.dart                # Home/dashboard screen
-│   ├── player_screen.dart              # Now playing screen
-│   ├── playlist_detail_screen.dart     # Playlist details
-│   ├── search_screen.dart              # Search functionality
-│   ├── profile_screen.dart              # User profile
-│   └── auth/                           # Authentication screens
-├── providers/                          # State management
-│   ├── player_provider.dart            # Audio player state
-│   ├── playlist_provider.dart          # Playlist management
-│   ├── auth_provider.dart              # Authentication state
-│   └── theme_provider.dart             # Theme management
-├── services/                           # Business logic & APIs
-│   ├── firebase_auth_service.dart       # Authentication
-│   ├── firebase_playlist_service.dart   # Playlist operations
-│   ├── soundcloud_service.dart         # Music streaming
-│   └── audio_service.dart              # Audio playback
-├── widgets/                            # Reusable UI components
-│   ├── player_controls.dart            # Playback controls
-│   ├── track_tile.dart                 # Track list item
-│   ├── playlist_card.dart              # Playlist preview
-│   └── loading_indicator.dart          # Loading states
-└── utils/                              # Utilities & helpers
-    ├── constants.dart                  # App constants
-    ├── themes.dart                     # App themes
-    └── helpers.dart                    # Helper functions
+├── main.dart                              # App entry point
+├── models/                                # Data models
+│   ├── track.dart                         # Track model
+│   ├── playlist.dart                      # Playlist model
+│   ├── user.dart                          # User model
+│   └── queue_item.dart                    # Queue item model
+├── screens/                               # UI screens
+│   ├── home_screen.dart                   # Home/dashboard screen
+│   ├── player_screen.dart                 # Now playing screen
+│   ├── playlist_detail_screen.dart        # Playlist details
+│   ├── search_screen.dart                 # Search functionality
+│   ├── profile_screen.dart                # User profile
+│   └── auth/                              # Authentication screens
+├── providers/                             # State management
+│   ├── player_provider.dart               # Audio player state
+│   ├── playlist_provider.dart             # Playlist management
+│   ├── auth_provider.dart                 # Authentication state
+│   └── theme_provider.dart                # Theme management
+├── services/                              # Business logic & APIs
+│   ├── firebase_auth_service.dart         # Authentication
+│   ├── firebase_playlist_service.dart     # Playlist operations
+│   ├── soundcloud_service.dart            # Music streaming
+│   └── audio_service.dart                 # Audio playback
+├── widgets/                               # Reusable UI components
+│   ├── player_controls.dart               # Playback controls
+│   ├── track_tile.dart                    # Track list item
+│   ├── playlist_card.dart                 # Playlist preview
+│   └── loading_indicator.dart             # Loading states
+└── utils/                                 # Utilities & helpers
+    ├── constants.dart                     # App constants
+    ├── themes.dart                        # App themes
+    └── helpers.dart                       # Helper functions
 ```
 
 ## 🎯 Usage Guide
