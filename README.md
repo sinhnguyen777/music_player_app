@@ -252,7 +252,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues or have questions:
 
-- 📧 Email: sinhnguyen777@example.com
+- 📧 Email: sinhnguyen.dev@gmail.com
 - 💬 GitHub Issues: [Create an issue](https://github.com/sinhnguyen777/music_player_app/issues)
 - 📚 Documentation: Check the wiki for detailed guides
 
